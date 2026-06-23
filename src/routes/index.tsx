@@ -301,16 +301,30 @@ function FlowDiagram({
                       <p className="text-xs leading-relaxed">{hop.tip}</p>
                     </TooltipContent>
                   </Tooltip>
-                  <span
-                    className={
-                      "text-xs font-medium transition " +
-                      (isDim
-                        ? "text-muted-foreground/40"
-                        : "text-muted-foreground")
-                    }
-                  >
-                    {hop.label}
-                  </span>
+                  <div className="flex flex-col items-center gap-0.5">
+                    <span
+                      className={
+                        "text-xs font-medium transition " +
+                        (isDim
+                          ? "text-muted-foreground/40"
+                          : "text-foreground")
+                      }
+                    >
+                      {hop.label}
+                    </span>
+                    <span
+                      className={
+                        "text-[10px] font-mono transition " +
+                        (isDim
+                          ? "text-muted-foreground/40"
+                          : hop.billed
+                            ? "text-red-600"
+                            : "text-emerald-600")
+                      }
+                    >
+                      {hop.billed ? `egress · ${hop.rate}` : hop.rate}
+                    </span>
+                  </div>
                 </div>
                 {i < hops.length - 1 && (
                   <ArrowRight className="mx-2 h-4 w-4 shrink-0 text-muted-foreground sm:mx-4" />
