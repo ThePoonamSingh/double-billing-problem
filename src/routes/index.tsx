@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import {
   User,
   Server,
@@ -103,6 +103,7 @@ function FlowDiagram({
   totalTone,
   caption,
   idPrefix,
+  animate = false,
 }: {
   title: string;
   hops: Hop[];
@@ -110,8 +111,67 @@ function FlowDiagram({
   totalTone: "bad" | "good";
   caption: string;
   idPrefix: string;
+  animate?: boolean;
 }) {
   const [activeId, setActiveId] = useState<string | null>(null);
+  const rowRef = useRef<HTMLDivElement | null>(null);
+  const hopRefs = useRef<Array<HTMLButtonElement | null>>([]);
+  const [positions, setPositions] = useState<number[]>([]);
+  const [packetIdx, setPacketIdx] = useState<number>(0);
+  const [droppedCoins, setDroppedCoins] = useState<Set<number>>(new Set());
+
+  // Measure hop x-centers relative to the row.
+  useLayoutEffect(() => {
+    if (!animate) return;
+    const measure = () => {
+      const row = rowRef.current;
+      if (!row) return;
+      const rowBox = row.getBoundingClientRect();
+      const xs = hopRefs.current.map((el) => {
+        if (!el) return 0;
+        const b = el.getBoundingClientRect();
+        return b.left - rowBox.left + b.width / 2;
+      });
+      setPositions(xs);
+    };
+    measure();
+    const ro = new ResizeObserver(measure);
+    if (rowRef.current) ro.observe(rowRef.current);
+    return () => ro.disconnect();
+  }, [animate, hops.length]);
+
+  // Drive the journey loop.
+  useEffect(() => {
+    if (!animate || positions.length === 0) return;
+    let timer: ReturnType<typeof setTimeout>;
+    const tick = () => {
+      setPacketIdx((prev) => {
+        const next = prev + 1;
+        if (next >= hops.length) {
+          // Reset after a pause.
+          timer = setTimeout(() => {
+            setDroppedCoins(new Set());
+            setPacketIdx(0);
+          }, 1800);
+          return prev;
+        }
+        if (hops[next].billed) {
+          setDroppedCoins((d) => {
+            const n = new Set(d);
+            n.add(next);
+            return n;
+          });
+        }
+        timer = setTimeout(tick, 1100);
+        return next;
+      });
+    };
+    timer = setTimeout(tick, 900);
+    return () => clearTimeout(timer);
+  }, [animate, positions.length, hops]);
+
+  const packetX = positions[packetIdx] ?? 0;
+  const packetReady = animate && positions.length > 0;
 
   return (
     <div className="rounded-xl border bg-card p-6 shadow-sm">
@@ -132,12 +192,31 @@ function FlowDiagram({
       </div>
 
       <TooltipProvider delayDuration={150}>
-        <div className="flex flex-wrap items-center justify-between gap-y-4">
+        <div
+          ref={rowRef}
+          className="relative flex flex-wrap items-center justify-between gap-y-4"
+        >
+          {/* Packet */}
+          {packetReady && (
+            <div
+              aria-hidden
+              className="pointer-events-none absolute z-10 -translate-x-1/2 -translate-y-1/2"
+              style={{
+                left: `${packetX}px`,
+                top: "28px",
+                transition: "left 900ms cubic-bezier(0.65, 0, 0.35, 1)",
+              }}
+            >
+              <div className="h-3 w-3 rounded-full bg-blue-500 shadow-[0_0_0_4px_rgba(59,130,246,0.25)]" />
+            </div>
+          )}
+
           {hops.map((hop, i) => {
             const Icon = hop.icon;
             const key = `${idPrefix}-${hop.id}`;
             const isActive = activeId === key;
             const isDim = activeId !== null && !isActive;
+            const coinDropped = droppedCoins.has(i);
             return (
               <div key={key} className="flex items-center">
                 <div className="flex flex-col items-center gap-2">
@@ -150,9 +229,10 @@ function FlowDiagram({
                     <TooltipTrigger asChild>
                       <button
                         type="button"
-                        onClick={() =>
-                          setActiveId(isActive ? null : key)
-                        }
+                        ref={(el) => {
+                          hopRefs.current[i] = el;
+                        }}
+                        onClick={() => setActiveId(isActive ? null : key)}
                         className={
                           "relative rounded-xl outline-none transition " +
                           "focus-visible:ring-2 focus-visible:ring-ring " +
@@ -177,6 +257,20 @@ function FlowDiagram({
                           <Icon className="h-6 w-6 text-foreground" />
                         </div>
                         {hop.billed && <CoinBadge />}
+                        {/* Dropped coin animation */}
+                        {animate && hop.billed && coinDropped && (
+                          <span
+                            key={`coin-${droppedCoins.size}-${i}`}
+                            aria-hidden
+                            className="pointer-events-none absolute left-1/2 top-1/2 flex h-5 w-5 -translate-x-1/2 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white shadow"
+                            style={{
+                              animation:
+                                "coinDrop 900ms cubic-bezier(0.4, 0, 0.2, 1) forwards",
+                            }}
+                          >
+                            $
+                          </span>
+                        )}
                       </button>
                     </TooltipTrigger>
                     <TooltipContent side="top" className="max-w-[220px]">
@@ -206,9 +300,20 @@ function FlowDiagram({
       <p className="mt-6 border-t pt-4 text-sm text-muted-foreground">
         {caption}
       </p>
+
+      {animate && (
+        <style>{`
+          @keyframes coinDrop {
+            0%   { opacity: 0; transform: translate(-50%, -50%) scale(0.4); }
+            30%  { opacity: 1; transform: translate(-50%, -50%) scale(1.1); }
+            100% { opacity: 0; transform: translate(-50%, 40px) scale(0.8); }
+          }
+        `}</style>
+      )}
     </div>
   );
 }
+
 
 function SampleJourney() {
   return (
@@ -312,7 +417,7 @@ function BreakEvenCalculator() {
     <div className="rounded-xl border bg-card p-6 shadow-sm">
       <div className="mb-1 flex items-baseline justify-between">
         <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-          Break-even calculator
+          Egress savings calculator
         </h3>
         <span className="text-xs text-muted-foreground">
           assuming 508 KB / request
@@ -418,6 +523,7 @@ function Index() {
             totalTone="bad"
             caption="3 boundaries crossed · 3 egress bills"
             idPrefix="typical"
+            animate
           />
           <FlowDiagram
             title="Catalyst"
@@ -472,7 +578,7 @@ function Index() {
         </section>
 
         <section className="mt-12">
-          <h2 className="mb-4 text-xl font-semibold">What does it cost you?</h2>
+          <h2 className="mb-4 text-xl font-semibold">What you'd save</h2>
           <BreakEvenCalculator />
         </section>
 
