@@ -312,8 +312,37 @@ function FlowDiagram({
                         )}
                       </button>
                     </TooltipTrigger>
-                    <TooltipContent side="top" className="max-w-[220px]">
-                      <p className="text-xs leading-relaxed">{hop.tip}</p>
+                    <TooltipContent side="top" className="max-w-[260px] p-3">
+                      <div className="space-y-2">
+                        <p className="text-xs font-semibold text-foreground">
+                          {hop.label} ·{" "}
+                          <span
+                            className={
+                              hop.billed ? "text-red-600" : "text-emerald-600"
+                            }
+                          >
+                            {hop.billed ? `egress ${hop.rate}` : hop.rate}
+                          </span>
+                        </p>
+                        <p className="text-xs leading-relaxed text-muted-foreground">
+                          {hop.why}
+                        </p>
+                        <div className="rounded border border-border bg-muted/50 px-2 py-1.5">
+                          <p className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                            Sample · 100 GB / month
+                          </p>
+                          <p
+                            className={
+                              "font-mono text-xs " +
+                              (hop.billed
+                                ? "text-red-600"
+                                : "text-emerald-600")
+                            }
+                          >
+                            {hop.sample}
+                          </p>
+                        </div>
+                      </div>
                     </TooltipContent>
                   </Tooltip>
                   <div className="flex flex-col items-center gap-0.5">
