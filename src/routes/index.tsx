@@ -802,8 +802,9 @@ function Index() {
             </span>
           </h1>
           <p className="mt-4 max-w-2xl text-lg text-muted-foreground">
-            One user request crosses three vendor boundaries — app, database,
-            storage — and each one charges egress on the way out.
+            In a typical user request, data crosses at least three vendor
+            boundaries — app, database, storage — and each one charges egress
+            on the way out.
           </p>
           <p className="mt-2 text-sm text-muted-foreground">
             Tip: hover or tap any icon below to see what happens at that hop.
