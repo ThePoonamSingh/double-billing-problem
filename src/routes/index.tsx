@@ -1117,9 +1117,8 @@ function HopDiagram({
                         : <>No boundary crossed inside Catalyst, so there's nothing to bill.</>}
                     </TooltipContent>
                   </Tooltip>
-                </span>
-              );
-            })()}
+              </span>
+            )}
           </span>
         ))}
       </div>
