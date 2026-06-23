@@ -1007,16 +1007,12 @@ function HopDiagram({
   summary,
   hopDuration,
   hopCost,
-  activeHop,
-  isPlaying,
 }: {
   vendors: string[];
   mode: "before" | "after";
   summary: string;
   hopDuration: number;
   hopCost: number;
-  activeHop: number;
-  isPlaying: boolean;
 }) {
   const isBefore = mode === "before";
   const accent = isBefore
