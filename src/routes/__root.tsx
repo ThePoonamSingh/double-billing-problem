@@ -10,7 +10,6 @@ import {
 import { useEffect, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
-import faviconAsset from "../assets/favicon.png.asset.json";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 
 function NotFoundComponent() {
@@ -79,18 +78,23 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
       { title: "Lovable App" },
-      { name: "description", content: "Lovable Generated Project" },
+      { name: "description", content: "Visual Clarity Hub simplifies complex information through visual aids like graphs, tables, and icons." },
       { name: "author", content: "Lovable" },
       { property: "og:title", content: "Lovable App" },
-      { property: "og:description", content: "Lovable Generated Project" },
+      { property: "og:description", content: "Visual Clarity Hub simplifies complex information through visual aids like graphs, tables, and icons." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
       { name: "twitter:site", content: "@Lovable" },
+      { name: "twitter:title", content: "Lovable App" },
+      { name: "twitter:description", content: "Visual Clarity Hub simplifies complex information through visual aids like graphs, tables, and icons." },
+      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/915482c3-0d80-400b-ac8f-7a6623e72090/id-preview-1ffe9561--2d545499-2971-4cb7-9ac7-2797a39c81d7.lovable.app-1782204532094.png" },
+      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/915482c3-0d80-400b-ac8f-7a6623e72090/id-preview-1ffe9561--2d545499-2971-4cb7-9ac7-2797a39c81d7.lovable.app-1782204532094.png" },
     ],
     links: [
-      { rel: "stylesheet", href: appCss },
-      { rel: "icon", type: "image/png", href: faviconAsset.url },
-      { rel: "apple-touch-icon", href: faviconAsset.url },
+      {
+        rel: "stylesheet",
+        href: appCss,
+      },
     ],
   }),
   shellComponent: RootShell,
