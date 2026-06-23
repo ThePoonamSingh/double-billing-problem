@@ -578,7 +578,7 @@ function Index() {
         </section>
 
         <section className="mt-12">
-          <h2 className="mb-4 text-xl font-semibold">What does it cost you?</h2>
+          <h2 className="mb-4 text-xl font-semibold">What you'd save</h2>
           <BreakEvenCalculator />
         </section>
 
