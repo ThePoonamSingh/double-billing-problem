@@ -42,6 +42,7 @@ type Hop = {
   label: string;
   icon: React.ComponentType<{ className?: string }>;
   billed: boolean;
+  rate: string;
   tip: string;
 };
 
@@ -51,6 +52,7 @@ const hops: Hop[] = [
     label: "User",
     icon: User,
     billed: false,
+    rate: "free",
     tip: "The browser sends a request. No egress cost here — ingress is free.",
   },
   {
@@ -58,6 +60,7 @@ const hops: Hop[] = [
     label: "App host",
     icon: Server,
     billed: true,
+    rate: "$0.12 / GB",
     tip: "Your app server (e.g. Vercel) responds. Bytes leaving its network are billed as egress.",
   },
   {
@@ -65,6 +68,7 @@ const hops: Hop[] = [
     label: "Database",
     icon: Database,
     billed: true,
+    rate: "$0.09 / GB",
     tip: "Managed DB ships rows to the app host. That cross-network read is billed.",
   },
   {
@@ -72,6 +76,7 @@ const hops: Hop[] = [
     label: "Storage",
     icon: HardDrive,
     billed: true,
+    rate: "$0.12 / GB",
     tip: "S3-style storage streams the asset out. Egress is metered per GB.",
   },
 ];
@@ -79,6 +84,7 @@ const hops: Hop[] = [
 const catalystHops: Hop[] = hops.map((h) => ({
   ...h,
   billed: false,
+  rate: "$0",
   tip:
     h.id === "user"
       ? h.tip
