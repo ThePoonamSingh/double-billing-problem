@@ -433,17 +433,17 @@ function SideBySideFlow({
             if (cancelled) return;
             setPacketIdx(i);
             if (hops[i].billed) onCoinDrop?.(i);
-          }, 900 + (i - 1) * 1100),
+          }, 350 + (i - 1) * 500),
         );
       }
 
       // Restart after the journey completes.
-      const total = 900 + (hops.length - 1) * 1100 + 1800;
+      const total = 350 + (hops.length - 1) * 500 + 800;
       timers.push(
         setTimeout(() => {
           if (cancelled) return;
           setPacketActive(false);
-          timers.push(setTimeout(run, 400));
+          timers.push(setTimeout(run, 200));
         }, total),
       );
     };
