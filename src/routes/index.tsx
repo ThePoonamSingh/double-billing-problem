@@ -1,11 +1,27 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { User, Server, Database, HardDrive, ArrowRight, Check, X } from "lucide-react";
+import { useState } from "react";
+import {
+  User,
+  Server,
+  Database,
+  HardDrive,
+  ArrowRight,
+  Check,
+  X,
+} from "lucide-react";
 import {
   Accordion,
   AccordionContent,
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
+import { Slider } from "@/components/ui/slider";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -22,17 +38,52 @@ export const Route = createFileRoute("/")({
 });
 
 type Hop = {
+  id: string;
   label: string;
   icon: React.ComponentType<{ className?: string }>;
   billed: boolean;
+  tip: string;
 };
 
 const hops: Hop[] = [
-  { label: "User", icon: User, billed: false },
-  { label: "App host", icon: Server, billed: true },
-  { label: "Database", icon: Database, billed: true },
-  { label: "Storage", icon: HardDrive, billed: true },
+  {
+    id: "user",
+    label: "User",
+    icon: User,
+    billed: false,
+    tip: "The browser sends a request. No egress cost here — ingress is free.",
+  },
+  {
+    id: "app",
+    label: "App host",
+    icon: Server,
+    billed: true,
+    tip: "Your app server (e.g. Vercel) responds. Bytes leaving its network are billed as egress.",
+  },
+  {
+    id: "db",
+    label: "Database",
+    icon: Database,
+    billed: true,
+    tip: "Managed DB ships rows to the app host. That cross-network read is billed.",
+  },
+  {
+    id: "storage",
+    label: "Storage",
+    icon: HardDrive,
+    billed: true,
+    tip: "S3-style storage streams the asset out. Egress is metered per GB.",
+  },
 ];
+
+const catalystHops: Hop[] = hops.map((h) => ({
+  ...h,
+  billed: false,
+  tip:
+    h.id === "user"
+      ? h.tip
+      : "Runs inside Catalyst's network — bytes never cross a billable boundary.",
+}));
 
 function CoinBadge() {
   return (
@@ -51,13 +102,17 @@ function FlowDiagram({
   totalLabel,
   totalTone,
   caption,
+  idPrefix,
 }: {
   title: string;
   hops: Hop[];
   totalLabel: string;
   totalTone: "bad" | "good";
   caption: string;
+  idPrefix: string;
 }) {
+  const [activeId, setActiveId] = useState<string | null>(null);
+
   return (
     <div className="rounded-xl border bg-card p-6 shadow-sm">
       <div className="mb-6 flex items-center justify-between">
@@ -76,29 +131,77 @@ function FlowDiagram({
         </span>
       </div>
 
-      <div className="flex flex-wrap items-center justify-between gap-y-4">
-        {hops.map((hop, i) => {
-          const Icon = hop.icon;
-          return (
-            <div key={hop.label} className="flex items-center">
-              <div className="flex flex-col items-center gap-2">
-                <div className="relative">
-                  <div className="flex h-14 w-14 items-center justify-center rounded-xl border bg-background">
-                    <Icon className="h-6 w-6 text-foreground" />
-                  </div>
-                  {hop.billed && <CoinBadge />}
+      <TooltipProvider delayDuration={150}>
+        <div className="flex flex-wrap items-center justify-between gap-y-4">
+          {hops.map((hop, i) => {
+            const Icon = hop.icon;
+            const key = `${idPrefix}-${hop.id}`;
+            const isActive = activeId === key;
+            const isDim = activeId !== null && !isActive;
+            return (
+              <div key={key} className="flex items-center">
+                <div className="flex flex-col items-center gap-2">
+                  <Tooltip
+                    open={isActive ? true : undefined}
+                    onOpenChange={(o) => {
+                      if (!o && isActive) setActiveId(null);
+                    }}
+                  >
+                    <TooltipTrigger asChild>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setActiveId(isActive ? null : key)
+                        }
+                        className={
+                          "relative rounded-xl outline-none transition " +
+                          "focus-visible:ring-2 focus-visible:ring-ring " +
+                          (isActive
+                            ? "scale-110"
+                            : isDim
+                              ? "opacity-40"
+                              : "hover:scale-105")
+                        }
+                        aria-label={`${hop.label} hop`}
+                      >
+                        <div
+                          className={
+                            "flex h-14 w-14 items-center justify-center rounded-xl border bg-background transition " +
+                            (isActive
+                              ? hop.billed
+                                ? "border-red-500 ring-2 ring-red-200"
+                                : "border-emerald-500 ring-2 ring-emerald-200"
+                              : "")
+                          }
+                        >
+                          <Icon className="h-6 w-6 text-foreground" />
+                        </div>
+                        {hop.billed && <CoinBadge />}
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent side="top" className="max-w-[220px]">
+                      <p className="text-xs leading-relaxed">{hop.tip}</p>
+                    </TooltipContent>
+                  </Tooltip>
+                  <span
+                    className={
+                      "text-xs font-medium transition " +
+                      (isDim
+                        ? "text-muted-foreground/40"
+                        : "text-muted-foreground")
+                    }
+                  >
+                    {hop.label}
+                  </span>
                 </div>
-                <span className="text-xs font-medium text-muted-foreground">
-                  {hop.label}
-                </span>
+                {i < hops.length - 1 && (
+                  <ArrowRight className="mx-2 h-4 w-4 shrink-0 text-muted-foreground sm:mx-4" />
+                )}
               </div>
-              {i < hops.length - 1 && (
-                <ArrowRight className="mx-2 h-4 w-4 shrink-0 text-muted-foreground sm:mx-4" />
-              )}
-            </div>
-          );
-        })}
-      </div>
+            );
+          })}
+        </div>
+      </TooltipProvider>
 
       <p className="mt-6 border-t pt-4 text-sm text-muted-foreground">
         {caption}
@@ -107,7 +210,177 @@ function FlowDiagram({
   );
 }
 
-const catalystHops: Hop[] = hops.map((h) => ({ ...h, billed: false }));
+function SampleJourney() {
+  return (
+    <div className="rounded-xl border bg-card p-6 shadow-sm">
+      <div className="mb-4 flex items-center justify-between">
+        <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+          Sample request
+        </h3>
+        <span className="rounded-full bg-muted px-3 py-1 font-mono text-xs">
+          GET /profile/42
+        </span>
+      </div>
+
+      <ol className="space-y-3 text-sm">
+        <li className="flex gap-3">
+          <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-muted font-mono text-xs">
+            1
+          </span>
+          <div>
+            <span className="font-medium">User → App host</span>
+            <span className="ml-2 text-muted-foreground">
+              Browser requests profile page (2 KB in, free)
+            </span>
+          </div>
+        </li>
+        <li className="flex gap-3">
+          <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-red-100 font-mono text-xs text-red-700">
+            2
+          </span>
+          <div>
+            <span className="font-medium">App host → Database</span>
+            <span className="ml-2 text-muted-foreground">
+              Query user row, 8 KB returned
+            </span>
+            <span className="ml-2 font-mono text-xs text-red-700">
+              + egress
+            </span>
+          </div>
+        </li>
+        <li className="flex gap-3">
+          <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-red-100 font-mono text-xs text-red-700">
+            3
+          </span>
+          <div>
+            <span className="font-medium">App host → Storage</span>
+            <span className="ml-2 text-muted-foreground">
+              Fetch avatar.jpg, 240 KB
+            </span>
+            <span className="ml-2 font-mono text-xs text-red-700">
+              + egress
+            </span>
+          </div>
+        </li>
+        <li className="flex gap-3">
+          <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-red-100 font-mono text-xs text-red-700">
+            4
+          </span>
+          <div>
+            <span className="font-medium">App host → User</span>
+            <span className="ml-2 text-muted-foreground">
+              Rendered HTML + avatar, 260 KB out
+            </span>
+            <span className="ml-2 font-mono text-xs text-red-700">
+              + egress
+            </span>
+          </div>
+        </li>
+      </ol>
+
+      <div className="mt-5 grid grid-cols-2 gap-3 border-t pt-4 text-sm">
+        <div className="rounded-lg bg-red-50 px-3 py-2">
+          <div className="text-xs text-red-700">Typical stack</div>
+          <div className="font-mono font-semibold text-red-700">
+            ~$0.000165 / request
+          </div>
+        </div>
+        <div className="rounded-lg bg-emerald-50 px-3 py-2">
+          <div className="text-xs text-emerald-700">Catalyst</div>
+          <div className="font-mono font-semibold text-emerald-700">
+            $0.00 / request
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Cost per request: 508 KB out * $0.33 / GB = ~$0.000165
+const KB_PER_REQ = 508;
+const TYPICAL_RATE_PER_GB = 0.33;
+const COST_PER_REQ =
+  (KB_PER_REQ / 1_000_000) * TYPICAL_RATE_PER_GB;
+
+function BreakEvenCalculator() {
+  const [millions, setMillions] = useState<number>(1);
+  const requests = millions * 1_000_000;
+  const typicalCost = requests * COST_PER_REQ;
+  const gb = (requests * KB_PER_REQ) / 1_000_000;
+
+  return (
+    <div className="rounded-xl border bg-card p-6 shadow-sm">
+      <div className="mb-1 flex items-baseline justify-between">
+        <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+          Break-even calculator
+        </h3>
+        <span className="text-xs text-muted-foreground">
+          assuming 508 KB / request
+        </span>
+      </div>
+      <p className="mb-6 text-sm text-muted-foreground">
+        Drag to see what egress costs at your scale.
+      </p>
+
+      <div className="mb-6">
+        <div className="mb-2 flex items-baseline justify-between">
+          <span className="text-sm font-medium">Monthly requests</span>
+          <span className="font-mono text-sm">
+            {requests.toLocaleString()}
+          </span>
+        </div>
+        <Slider
+          value={[millions]}
+          min={0.1}
+          max={100}
+          step={0.1}
+          onValueChange={(v) => setMillions(v[0])}
+        />
+        <div className="mt-1 flex justify-between text-xs text-muted-foreground">
+          <span>100K</span>
+          <span>100M</span>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-3">
+        <div className="rounded-lg border bg-red-50 p-4">
+          <div className="text-xs font-medium uppercase tracking-wide text-red-700">
+            Typical stack
+          </div>
+          <div className="mt-1 font-mono text-2xl font-bold text-red-700">
+            ${typicalCost.toFixed(2)}
+          </div>
+          <div className="mt-1 text-xs text-red-700/80">
+            {gb.toFixed(1)} GB egress / mo
+          </div>
+        </div>
+        <div className="rounded-lg border bg-emerald-50 p-4">
+          <div className="text-xs font-medium uppercase tracking-wide text-emerald-700">
+            Catalyst
+          </div>
+          <div className="mt-1 font-mono text-2xl font-bold text-emerald-700">
+            $0.00
+          </div>
+          <div className="mt-1 text-xs text-emerald-700/80">
+            same traffic, $0 egress
+          </div>
+        </div>
+      </div>
+
+      <p className="mt-4 rounded-lg bg-muted/50 px-3 py-2 text-sm">
+        At this volume you save{" "}
+        <span className="font-mono font-semibold">
+          ${typicalCost.toFixed(2)}
+        </span>{" "}
+        / month — or{" "}
+        <span className="font-mono font-semibold">
+          ${(typicalCost * 12).toFixed(2)}
+        </span>{" "}
+        / year.
+      </p>
+    </div>
+  );
+}
 
 const rows = [
   { hop: "App host → User (egress)", typical: "$0.33/GB", catalyst: "$0" },
@@ -131,6 +404,9 @@ function Index() {
             Every time data crosses a vendor boundary in a typical stack, you
             pay. Catalyst keeps it inside one network.
           </p>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Tip: hover or tap any icon below to see what happens at that hop.
+          </p>
         </header>
 
         <section className="space-y-4">
@@ -140,6 +416,7 @@ function Index() {
             totalLabel="≈ $0.99 / GB"
             totalTone="bad"
             caption="3 boundaries crossed · 3 egress bills"
+            idPrefix="typical"
           />
           <FlowDiagram
             title="Catalyst"
@@ -147,7 +424,12 @@ function Index() {
             totalLabel="$0 / GB"
             totalTone="good"
             caption="Same path, one network, no egress fees"
+            idPrefix="catalyst"
           />
+        </section>
+
+        <section className="mt-8">
+          <SampleJourney />
         </section>
 
         <section className="mt-12">
@@ -186,6 +468,11 @@ function Index() {
               </tbody>
             </table>
           </div>
+        </section>
+
+        <section className="mt-12">
+          <h2 className="mb-4 text-xl font-semibold">What does it cost you?</h2>
+          <BreakEvenCalculator />
         </section>
 
         <section className="mt-12">
