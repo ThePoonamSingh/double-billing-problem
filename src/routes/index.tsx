@@ -417,7 +417,7 @@ function BreakEvenCalculator() {
     <div className="rounded-xl border bg-card p-6 shadow-sm">
       <div className="mb-1 flex items-baseline justify-between">
         <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-          Break-even calculator
+          Egress savings calculator
         </h3>
         <span className="text-xs text-muted-foreground">
           assuming 508 KB / request
