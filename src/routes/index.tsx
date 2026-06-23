@@ -7,7 +7,7 @@ import {
   HardDrive,
   ArrowRight,
   Play,
-  Pause,
+  
   ChevronLeft,
   ChevronRight,
   RotateCcw,
