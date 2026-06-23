@@ -7,11 +7,14 @@ import {
   HardDrive,
   ArrowRight,
   Play,
+  Pause,
   ChevronLeft,
   ChevronRight,
   RotateCcw,
   Sparkles,
+  Info,
 } from "lucide-react";
+import { Slider } from "@/components/ui/slider";
 import {
   Accordion,
   AccordionContent,
