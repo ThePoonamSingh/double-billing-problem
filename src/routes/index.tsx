@@ -842,6 +842,37 @@ function formatCost(usd: number) {
   return `$${usd.toFixed(5)}`;
 }
 
+/**
+ * Per-vendor icon + brand-ish color used to color-code each hop.
+ * `tint` classes drive the icon chip; the vendor name itself stays neutral
+ * so it stays readable inside the red boundary box.
+ */
+const vendorStyle: Record<
+  string,
+  { icon: LucideIcon; tint: string; ring: string; dot: string }
+> = {
+  Supabase:        { icon: Database,  tint: "bg-emerald-500/15 text-emerald-300", ring: "ring-emerald-400/40", dot: "bg-emerald-400" },
+  "AWS S3":        { icon: HardDrive, tint: "bg-amber-500/15 text-amber-300",     ring: "ring-amber-400/40",   dot: "bg-amber-400" },
+  "S3 Data Lake":  { icon: HardDrive, tint: "bg-amber-500/15 text-amber-300",     ring: "ring-amber-400/40",   dot: "bg-amber-400" },
+  Azure:           { icon: Cloud,     tint: "bg-sky-500/15 text-sky-300",         ring: "ring-sky-400/40",     dot: "bg-sky-400" },
+  GCP:             { icon: Cloud,     tint: "bg-blue-500/15 text-blue-300",       ring: "ring-blue-400/40",    dot: "bg-blue-400" },
+  "Cloudflare CDN":{ icon: Zap,       tint: "bg-orange-500/15 text-orange-300",   ring: "ring-orange-400/40",  dot: "bg-orange-400" },
+  Snowflake:       { icon: Snowflake, tint: "bg-cyan-500/15 text-cyan-300",       ring: "ring-cyan-400/40",    dot: "bg-cyan-400" },
+  DigitalOcean:    { icon: Server,    tint: "bg-indigo-500/15 text-indigo-300",   ring: "ring-indigo-400/40",  dot: "bg-indigo-400" },
+  Firebase:        { icon: Flame,     tint: "bg-amber-500/15 text-amber-300",     ring: "ring-amber-400/40",   dot: "bg-amber-400" },
+  "MongoDB Atlas": { icon: Leaf,      tint: "bg-green-500/15 text-green-300",     ring: "ring-green-400/40",   dot: "bg-green-400" },
+  Heroku:          { icon: Server,    tint: "bg-violet-500/15 text-violet-300",   ring: "ring-violet-400/40",  dot: "bg-violet-400" },
+};
+const defaultVendorStyle = {
+  icon: Server,
+  tint: "bg-muted text-foreground/80",
+  ring: "ring-border",
+  dot: "bg-muted-foreground",
+};
+function getVendorStyle(name: string) {
+  return vendorStyle[name] ?? defaultVendorStyle;
+}
+
 function RealStackScenarios() {
   const [activeId, setActiveId] = useState(scenarios[0].id);
   const [dataMb, setDataMb] = useState(100);
