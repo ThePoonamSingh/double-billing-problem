@@ -197,6 +197,24 @@ function FlowDiagram({
         </span>
       </div>
 
+      {/* Legend */}
+      <div className="mb-4 flex flex-wrap items-center gap-x-5 gap-y-2 text-xs text-muted-foreground">
+        <span className="flex items-center gap-2">
+          <span className="inline-block h-3 w-3 rounded-full bg-blue-500 shadow-[0_0_0_3px_rgba(59,130,246,0.25)]" />
+          Request packet
+        </span>
+        <span className="flex items-center gap-2">
+          <span className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[9px] font-bold text-white">
+            $
+          </span>
+          Billed egress hop
+        </span>
+        <span className="flex items-center gap-2">
+          <span className="inline-block h-3 w-3 rounded-sm border bg-background" />
+          Free hop (no egress)
+        </span>
+      </div>
+
       <TooltipProvider delayDuration={150}>
         <div
           ref={rowRef}
