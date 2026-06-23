@@ -583,6 +583,16 @@ const rows = [
 ];
 
 function Index() {
+  const billedTotal = hops.filter((h) => h.billed).length;
+  const [coinsDropped, setCoinsDropped] = useState(0);
+  const handleCoinDrop = useCallback(() => {
+    setCoinsDropped((c) => Math.min(c + 1, billedTotal));
+  }, [billedTotal]);
+  const handleReset = useCallback(() => setCoinsDropped(0), []);
+
+  const strikeProgress = coinsDropped / billedTotal;
+  const revealed = coinsDropped >= billedTotal;
+
   return (
     <div className="min-h-screen bg-[#fcfbf8]">
       <div className="mx-auto max-w-4xl px-6 py-16">
@@ -591,7 +601,31 @@ function Index() {
             The hidden egress tax
           </p>
           <h1 className="text-4xl font-bold tracking-tight text-foreground sm:text-5xl">
-            You pay every time your data moves.
+            <span className="relative inline-block">
+              <span
+                className={
+                  "transition-colors duration-500 " +
+                  (revealed ? "text-muted-foreground/60" : "text-foreground")
+                }
+              >
+                You pay every time your data moves.
+              </span>
+              <span
+                aria-hidden
+                className="pointer-events-none absolute left-0 top-1/2 h-[3px] -translate-y-1/2 rounded-full bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.5)] transition-[width] duration-700 ease-out"
+                style={{ width: `${strikeProgress * 100}%` }}
+              />
+            </span>
+            <span
+              className={
+                "mt-2 block text-foreground transition-all duration-500 " +
+                (revealed
+                  ? "translate-y-0 opacity-100"
+                  : "translate-y-2 opacity-0")
+              }
+            >
+              Not with Catalyst.
+            </span>
           </h1>
           <p className="mt-4 max-w-2xl text-lg text-muted-foreground">
             One user request crosses three vendor boundaries — app, database,
@@ -611,6 +645,8 @@ function Index() {
             caption="3 boundaries crossed · 3 egress bills"
             idPrefix="typical"
             animate
+            onCoinDrop={handleCoinDrop}
+            onReset={handleReset}
           />
           <FlowDiagram
             title="Catalyst"
