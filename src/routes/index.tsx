@@ -177,6 +177,7 @@ function FlowDiagram({
           timer = setTimeout(() => {
             setDroppedCoins(new Set());
             setPacketIdx(0);
+            onReset?.();
           }, 1800);
           return prev;
         }
@@ -186,6 +187,7 @@ function FlowDiagram({
             n.add(next);
             return n;
           });
+          onCoinDrop?.(next);
         }
         timer = setTimeout(tick, 1100);
         return next;
@@ -193,7 +195,7 @@ function FlowDiagram({
     };
     timer = setTimeout(tick, 900);
     return () => clearTimeout(timer);
-  }, [animate, positions.length, hops]);
+  }, [animate, positions.length, hops, onCoinDrop, onReset]);
 
   const packetX = positions[packetIdx] ?? 0;
   const packetReady = animate && positions.length > 0;
