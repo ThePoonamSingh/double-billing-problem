@@ -837,8 +837,6 @@ function formatCost(usd: number) {
 function RealStackScenarios() {
   const [activeId, setActiveId] = useState(scenarios[0].id);
   const [dataMb, setDataMb] = useState(100);
-  const [stepIndex, setStepIndex] = useState(0);
-  const [isPlaying, setIsPlaying] = useState(false);
   const active = scenarios.find((s) => s.id === activeId)!;
 
   // Animation duration scales with payload size (bigger = slower).
@@ -846,29 +844,6 @@ function RealStackScenarios() {
   const hopCost = (dataMb / 1024) * EGRESS_PER_GB;
   const totalBeforeCost = hopCost * active.steps.length;
 
-  // Reset walkthrough when scenario changes.
-  useEffect(() => {
-    setStepIndex(0);
-    setIsPlaying(false);
-  }, [activeId]);
-
-  // Auto-advance walkthrough.
-  useEffect(() => {
-    if (!isPlaying) return;
-    const ms = (hopDuration + 0.6) * 1000;
-    const t = setTimeout(() => {
-      setStepIndex((i) => {
-        if (i + 1 >= active.steps.length) {
-          setIsPlaying(false);
-          return i;
-        }
-        return i + 1;
-      });
-    }, ms);
-    return () => clearTimeout(t);
-  }, [isPlaying, stepIndex, hopDuration, active.steps.length]);
-
-  const currentStep = active.steps[stepIndex];
 
   return (
     <TooltipProvider delayDuration={150}>
