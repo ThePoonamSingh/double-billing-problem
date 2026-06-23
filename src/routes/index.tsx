@@ -42,6 +42,7 @@ type Hop = {
   label: string;
   icon: React.ComponentType<{ className?: string }>;
   billed: boolean;
+  rate: string;
   tip: string;
 };
 
@@ -51,6 +52,7 @@ const hops: Hop[] = [
     label: "User",
     icon: User,
     billed: false,
+    rate: "free",
     tip: "The browser sends a request. No egress cost here — ingress is free.",
   },
   {
@@ -58,6 +60,7 @@ const hops: Hop[] = [
     label: "App host",
     icon: Server,
     billed: true,
+    rate: "$0.12 / GB",
     tip: "Your app server (e.g. Vercel) responds. Bytes leaving its network are billed as egress.",
   },
   {
@@ -65,6 +68,7 @@ const hops: Hop[] = [
     label: "Database",
     icon: Database,
     billed: true,
+    rate: "$0.09 / GB",
     tip: "Managed DB ships rows to the app host. That cross-network read is billed.",
   },
   {
@@ -72,6 +76,7 @@ const hops: Hop[] = [
     label: "Storage",
     icon: HardDrive,
     billed: true,
+    rate: "$0.12 / GB",
     tip: "S3-style storage streams the asset out. Egress is metered per GB.",
   },
 ];
@@ -79,6 +84,7 @@ const hops: Hop[] = [
 const catalystHops: Hop[] = hops.map((h) => ({
   ...h,
   billed: false,
+  rate: "$0",
   tip:
     h.id === "user"
       ? h.tip
@@ -191,6 +197,24 @@ function FlowDiagram({
         </span>
       </div>
 
+      {/* Legend */}
+      <div className="mb-4 flex flex-wrap items-center gap-x-5 gap-y-2 text-xs text-muted-foreground">
+        <span className="flex items-center gap-2">
+          <span className="inline-block h-3 w-3 rounded-full bg-blue-500 shadow-[0_0_0_3px_rgba(59,130,246,0.25)]" />
+          Request packet
+        </span>
+        <span className="flex items-center gap-2">
+          <span className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[9px] font-bold text-white">
+            $
+          </span>
+          Billed egress hop
+        </span>
+        <span className="flex items-center gap-2">
+          <span className="inline-block h-3 w-3 rounded-sm border bg-background" />
+          Free hop (no egress)
+        </span>
+      </div>
+
       <TooltipProvider delayDuration={150}>
         <div
           ref={rowRef}
@@ -277,16 +301,30 @@ function FlowDiagram({
                       <p className="text-xs leading-relaxed">{hop.tip}</p>
                     </TooltipContent>
                   </Tooltip>
-                  <span
-                    className={
-                      "text-xs font-medium transition " +
-                      (isDim
-                        ? "text-muted-foreground/40"
-                        : "text-muted-foreground")
-                    }
-                  >
-                    {hop.label}
-                  </span>
+                  <div className="flex flex-col items-center gap-0.5">
+                    <span
+                      className={
+                        "text-xs font-medium transition " +
+                        (isDim
+                          ? "text-muted-foreground/40"
+                          : "text-foreground")
+                      }
+                    >
+                      {hop.label}
+                    </span>
+                    <span
+                      className={
+                        "text-[10px] font-mono transition " +
+                        (isDim
+                          ? "text-muted-foreground/40"
+                          : hop.billed
+                            ? "text-red-600"
+                            : "text-emerald-600")
+                      }
+                    >
+                      {hop.billed ? `egress · ${hop.rate}` : hop.rate}
+                    </span>
+                  </div>
                 </div>
                 {i < hops.length - 1 && (
                   <ArrowRight className="mx-2 h-4 w-4 shrink-0 text-muted-foreground sm:mx-4" />
