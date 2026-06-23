@@ -7,12 +7,20 @@ import {
   HardDrive,
   ArrowRight,
   Play,
-  
   ChevronLeft,
   ChevronRight,
   RotateCcw,
   Sparkles,
   Info,
+  Cloud,
+  Zap,
+  Snowflake,
+  Flame,
+  Leaf,
+  DollarSign,
+  ShieldCheck,
+  Gauge,
+  type LucideIcon,
 } from "lucide-react";
 import { Slider } from "@/components/ui/slider";
 import {
