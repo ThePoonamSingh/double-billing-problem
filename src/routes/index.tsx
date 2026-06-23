@@ -759,6 +759,7 @@ function SideBySideFlow({
 
 
 
+type HopStep = { from: string; to: string; action: string };
 type Scenario = {
   id: string;
   title: string;
@@ -766,6 +767,8 @@ type Scenario = {
   problem: string;
   before: string;
   after: string;
+  /** Length must be vendors.length - 1. Describes what happens on each hop. */
+  steps: HopStep[];
 };
 
 const scenarios: Scenario[] = [
@@ -774,97 +777,291 @@ const scenarios: Scenario[] = [
     title: "A 3-vendor SaaS stack",
     vendors: ["Supabase", "AWS S3", "Azure"],
     problem:
-      "A SaaS app built across three providers pays egress every time the stack talks to itself. The app queries Supabase, retrieves files from S3, and delivers responses via Azure. Each hop crosses a provider boundary. Pulling 100MB from the database and sending that same 100MB to the browser is billed twice, even if the data never left the app.",
+      "A SaaS app built across three providers pays egress every time the stack talks to itself. The app queries Supabase, retrieves files from S3, and delivers responses via Azure. Each hop crosses a provider boundary.",
     before: "3× egress fees",
     after: "$0 egress",
+    steps: [
+      { from: "Supabase", to: "AWS S3", action: "App queries Supabase for a record, then fetches the linked file reference from S3 — data leaves Supabase's network." },
+      { from: "AWS S3", to: "Azure", action: "S3 streams the file to the app running on Azure — data leaves AWS's network and a second meter starts." },
+    ],
   },
   {
     id: "media",
     title: "Media platform startup",
     vendors: ["AWS S3", "GCP", "Cloudflare CDN"],
     problem:
-      "A video platform built across three providers pays egress at every stage of the pipeline. Uploads pulled from S3, transcoded on GCP, then thumbnails pushed to Cloudflare. Each step crosses a provider boundary and starts a new meter. At 50,000 uploads/month, per-video cents become thousands of dollars in transfer fees alone.",
+      "A video platform pays egress at every stage of the pipeline. Uploads pulled from S3, transcoded on GCP, then thumbnails pushed to Cloudflare. At 50,000 uploads/month, per-video cents become thousands of dollars in transfer fees alone.",
     before: "Cost scales with every upload",
     after: "$0 egress",
+    steps: [
+      { from: "AWS S3", to: "GCP", action: "Raw video pulled from S3 into a GCP transcoder — full file size leaves AWS." },
+      { from: "GCP", to: "Cloudflare CDN", action: "Transcoded renditions and thumbnails pushed to Cloudflare — data leaves GCP." },
+    ],
   },
   {
     id: "etl",
     title: "The ETL pipeline",
     vendors: ["S3 Data Lake", "Snowflake", "DigitalOcean"],
     problem:
-      "A nightly ETL job moves gigabytes from S3 to Snowflake to a dashboard server. Each sync crosses egress boundaries, starting a meter. The data belongs to the team running the pipeline — they just keep paying to move it around their own stack. By year end, the egress bill exceeded the actual compute cost.",
+      "A nightly ETL job moves gigabytes from S3 to Snowflake to a dashboard server. Each sync crosses egress boundaries, starting a meter. By year end, the egress bill exceeded the actual compute cost.",
     before: "Daily egress × 365",
     after: "$0 egress",
+    steps: [
+      { from: "S3 Data Lake", to: "Snowflake", action: "Nightly extract pulls gigabytes out of S3 into Snowflake — full payload billed as egress." },
+      { from: "Snowflake", to: "DigitalOcean", action: "Aggregated results shipped to the dashboard server on DigitalOcean — second egress meter." },
+    ],
   },
   {
     id: "ecommerce",
     title: "eCommerce backend",
     vendors: ["Firebase", "MongoDB Atlas", "Heroku"],
     problem:
-      "A single customer page load crosses three provider boundaries. Auth check to Firebase, product fetch from Atlas, inventory sync from Heroku. Three round trips, three egress meters for one page. Multiply that by millions of page loads per month, and the egress bill grows significantly.",
+      "A single customer page load crosses three provider boundaries. Auth check to Firebase, product fetch from Atlas, inventory sync from Heroku. Multiply that by millions of page loads per month, and the egress bill grows significantly.",
     before: "Grows with every visitor",
     after: "$0 egress",
+    steps: [
+      { from: "Firebase", to: "MongoDB Atlas", action: "Auth token validated on Firebase, then app queries Atlas for product data — request crosses out of Firebase." },
+      { from: "MongoDB Atlas", to: "Heroku", action: "Product payload returned to the app server on Heroku, which then syncs inventory — data leaves Atlas." },
+    ],
   },
 ];
 
+/** Industry-typical egress: ~$0.09 per GB. */
+const EGRESS_PER_GB = 0.09;
+function formatCost(usd: number) {
+  if (usd >= 1) return `$${usd.toFixed(2)}`;
+  if (usd >= 0.01) return `$${usd.toFixed(3)}`;
+  return `$${usd.toFixed(5)}`;
+}
+
 function RealStackScenarios() {
   const [activeId, setActiveId] = useState(scenarios[0].id);
+  const [dataMb, setDataMb] = useState(100);
+  const [stepIndex, setStepIndex] = useState(0);
+  const [isPlaying, setIsPlaying] = useState(false);
   const active = scenarios.find((s) => s.id === activeId)!;
 
+  // Animation duration scales with payload size (bigger = slower).
+  const hopDuration = Math.max(0.6, Math.min(4, dataMb / 100 * 1.8));
+  const hopCost = (dataMb / 1024) * EGRESS_PER_GB;
+  const totalBeforeCost = hopCost * active.steps.length;
+
+  // Reset walkthrough when scenario changes.
+  useEffect(() => {
+    setStepIndex(0);
+    setIsPlaying(false);
+  }, [activeId]);
+
+  // Auto-advance walkthrough.
+  useEffect(() => {
+    if (!isPlaying) return;
+    const ms = (hopDuration + 0.6) * 1000;
+    const t = setTimeout(() => {
+      setStepIndex((i) => {
+        if (i + 1 >= active.steps.length) {
+          setIsPlaying(false);
+          return i;
+        }
+        return i + 1;
+      });
+    }, ms);
+    return () => clearTimeout(t);
+  }, [isPlaying, stepIndex, hopDuration, active.steps.length]);
+
+  const currentStep = active.steps[stepIndex];
+
   return (
-    <div className="rounded-2xl border border-border bg-card/40 p-6 sm:p-8">
-      <div className="mb-6">
-        <h2 className="text-2xl font-semibold tracking-tight sm:text-3xl">
-          See how this plays out in real stacks
-        </h2>
-        <p className="mt-2 text-sm text-muted-foreground">
-          Pick a scenario to see the stack, the problem, and what changes with Catalyst.
-        </p>
-      </div>
-
-      <div className="flex flex-wrap gap-2" role="tablist">
-        {scenarios.map((s, i) => {
-          const isActive = s.id === activeId;
-          return (
-            <button
-              key={s.id}
-              role="tab"
-              aria-selected={isActive}
-              onClick={() => setActiveId(s.id)}
-              className={
-                "rounded-full border px-4 py-2 text-sm transition-colors " +
-                (isActive
-                  ? "border-primary bg-primary text-primary-foreground"
-                  : "border-border bg-background/50 text-muted-foreground hover:text-foreground hover:border-foreground/30")
-              }
-            >
-              <span className="mr-2 inline-flex h-5 w-5 items-center justify-center rounded-full bg-foreground/10 text-xs">
-                {i + 1}
-              </span>
-              {s.title}
-            </button>
-          );
-        })}
-      </div>
-
-      <div key={active.id} className="mt-6 animate-fade-in space-y-6">
-        {/* Problem statement */}
-        <div className="rounded-xl border border-border bg-background/40 p-5">
-          <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-            The problem
-          </div>
-          <p className="text-sm leading-relaxed text-foreground/90">
-            {active.problem}
+    <TooltipProvider delayDuration={150}>
+      <div className="rounded-2xl border border-border bg-card/40 p-6 sm:p-8">
+        <div className="mb-6">
+          <h2 className="text-2xl font-semibold tracking-tight sm:text-3xl">
+            See how this plays out in real stacks
+          </h2>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Pick a scenario, scale the payload, and play the walkthrough to watch each hop run.
           </p>
         </div>
 
-        {/* Visual hop diagrams */}
-        <div className="grid gap-4 lg:grid-cols-2">
-          <HopDiagram vendors={active.vendors} mode="before" summary={active.before} />
-          <HopDiagram vendors={active.vendors} mode="after" summary={active.after} />
+        {/* Scenario tabs */}
+        <div className="flex flex-wrap gap-2" role="tablist">
+          {scenarios.map((s, i) => {
+            const isActive = s.id === activeId;
+            return (
+              <button
+                key={s.id}
+                role="tab"
+                aria-selected={isActive}
+                onClick={() => setActiveId(s.id)}
+                className={
+                  "rounded-full border px-4 py-2 text-sm transition-colors " +
+                  (isActive
+                    ? "border-primary bg-primary text-primary-foreground"
+                    : "border-border bg-background/50 text-muted-foreground hover:text-foreground hover:border-foreground/30")
+                }
+              >
+                <span className="mr-2 inline-flex h-5 w-5 items-center justify-center rounded-full bg-foreground/10 text-xs">
+                  {i + 1}
+                </span>
+                {s.title}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Legend */}
+        <div className="mt-5 flex flex-wrap items-center gap-x-5 gap-y-2 rounded-lg border border-border bg-background/40 px-4 py-3 text-[11px]">
+          <span className="inline-flex items-center gap-1.5 font-semibold uppercase tracking-wide text-muted-foreground">
+            <Info className="h-3.5 w-3.5" /> Legend
+          </span>
+          <span className="inline-flex items-center gap-2">
+            <span className="inline-block h-5 w-7 rounded border border-dashed border-red-500/60 bg-red-500/10" />
+            <span className="text-muted-foreground">Vendor boundary (its own billing perimeter)</span>
+          </span>
+          <span className="inline-flex items-center gap-2">
+            <span className="relative inline-block h-[2px] w-8 rounded-full bg-gradient-to-r from-red-500/20 via-red-500/60 to-red-500/20">
+              <span className="absolute left-1/2 top-1/2 h-1.5 w-1.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.8)]" />
+            </span>
+            <span className="text-muted-foreground">Hop = animated data packet crossing a connector</span>
+          </span>
+          <span className="inline-flex items-center gap-2">
+            <span className="rounded-full border border-red-500/30 bg-red-500/10 px-1.5 py-0.5 text-[10px] font-bold text-red-300">$ egress</span>
+            <span className="text-muted-foreground">Per-hop charge from the source vendor</span>
+          </span>
+        </div>
+
+        <div key={active.id} className="mt-6 animate-fade-in space-y-6">
+          {/* Problem statement */}
+          <div className="rounded-xl border border-border bg-background/40 p-5">
+            <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              The problem
+            </div>
+            <p className="text-sm leading-relaxed text-foreground/90">{active.problem}</p>
+          </div>
+
+          {/* Data size slider */}
+          <div className="rounded-xl border border-border bg-background/40 p-5">
+            <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
+              <label htmlFor="data-size" className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                Data per request
+              </label>
+              <div className="flex items-baseline gap-4 text-sm">
+                <span className="font-mono text-base font-semibold text-foreground">{dataMb} MB</span>
+                <span className="text-muted-foreground">
+                  ≈ <span className="font-mono text-red-400">{formatCost(hopCost)}</span> / hop ·
+                  <span className="ml-1">total </span>
+                  <span className="font-mono text-red-400">{formatCost(totalBeforeCost)}</span>
+                </span>
+              </div>
+            </div>
+            <Slider
+              id="data-size"
+              value={[dataMb]}
+              onValueChange={(v) => setDataMb(v[0])}
+              min={10}
+              max={500}
+              step={10}
+            />
+            <div className="mt-2 flex justify-between text-[10px] uppercase tracking-wide text-muted-foreground">
+              <span>10 MB</span>
+              <span>500 MB</span>
+            </div>
+          </div>
+
+          {/* Visual hop diagrams */}
+          <div className="grid gap-4 lg:grid-cols-2">
+            <HopDiagram
+              vendors={active.vendors}
+              mode="before"
+              summary={active.before}
+              hopDuration={hopDuration}
+              hopCost={hopCost}
+              activeHop={stepIndex}
+              isPlaying={isPlaying}
+            />
+            <HopDiagram
+              vendors={active.vendors}
+              mode="after"
+              summary={active.after}
+              hopDuration={hopDuration}
+              hopCost={hopCost}
+              activeHop={stepIndex}
+              isPlaying={isPlaying}
+            />
+          </div>
+
+          {/* Walkthrough panel */}
+          <div className="rounded-xl border border-border bg-background/40 p-5">
+            <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+              <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                Walkthrough · hop {stepIndex + 1} of {active.steps.length}
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setStepIndex((i) => Math.max(0, i - 1))}
+                  disabled={stepIndex === 0}
+                  className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-border bg-background text-muted-foreground transition-colors hover:text-foreground disabled:opacity-30"
+                  aria-label="Previous hop"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (stepIndex >= active.steps.length - 1) setStepIndex(0);
+                    setIsPlaying((p) => !p);
+                  }}
+                  className="inline-flex items-center gap-1.5 rounded-md border border-primary bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground hover:opacity-90"
+                >
+                  {isPlaying ? <Pause className="h-3.5 w-3.5" /> : <Play className="h-3.5 w-3.5" />}
+                  {isPlaying ? "Pause" : "Play"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setStepIndex((i) => Math.min(active.steps.length - 1, i + 1))}
+                  disabled={stepIndex >= active.steps.length - 1}
+                  className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-border bg-background text-muted-foreground transition-colors hover:text-foreground disabled:opacity-30"
+                  aria-label="Next hop"
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setStepIndex(0); setIsPlaying(false); }}
+                  className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-border bg-background text-muted-foreground transition-colors hover:text-foreground"
+                  aria-label="Reset walkthrough"
+                >
+                  <RotateCcw className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+            <div className="flex flex-wrap items-center gap-2 text-sm">
+              <span className="rounded-md border border-border bg-background px-2 py-0.5 font-semibold">{currentStep.from}</span>
+              <ArrowRight className="h-4 w-4 text-muted-foreground" />
+              <span className="rounded-md border border-border bg-background px-2 py-0.5 font-semibold">{currentStep.to}</span>
+              <span className="ml-auto rounded-full border border-red-500/30 bg-red-500/10 px-2 py-0.5 text-[11px] font-bold text-red-300">
+                {formatCost(hopCost)} egress
+              </span>
+            </div>
+            <p className="mt-3 text-sm leading-relaxed text-foreground/90">{currentStep.action}</p>
+            {/* Progress dots */}
+            <div className="mt-4 flex gap-1.5">
+              {active.steps.map((_, i) => (
+                <button
+                  key={i}
+                  onClick={() => setStepIndex(i)}
+                  aria-label={`Go to hop ${i + 1}`}
+                  className={
+                    "h-1.5 flex-1 rounded-full transition-colors " +
+                    (i === stepIndex ? "bg-primary" : i < stepIndex ? "bg-primary/40" : "bg-border")
+                  }
+                />
+              ))}
+            </div>
+          </div>
         </div>
       </div>
-    </div>
+    </TooltipProvider>
   );
 }
 
@@ -872,10 +1069,18 @@ function HopDiagram({
   vendors,
   mode,
   summary,
+  hopDuration,
+  hopCost,
+  activeHop,
+  isPlaying,
 }: {
   vendors: string[];
   mode: "before" | "after";
   summary: string;
+  hopDuration: number;
+  hopCost: number;
+  activeHop: number;
+  isPlaying: boolean;
 }) {
   const isBefore = mode === "before";
   const accent = isBefore
@@ -909,7 +1114,6 @@ function HopDiagram({
         </span>
       </div>
 
-      {/* For "After": wrap the whole network in one unified boundary label */}
       {!isBefore && (
         <div className="mb-3 text-center text-[10px] font-medium uppercase tracking-widest text-emerald-400/80">
           ── one network · no boundaries ──
@@ -920,46 +1124,78 @@ function HopDiagram({
       <div className="flex items-stretch justify-between gap-1">
         {vendors.map((v, i) => (
           <span key={v} className="flex flex-1 items-center gap-1">
-            {/* Vendor node, optionally wrapped in its own boundary box for "before" */}
+            {/* Vendor node */}
             {isBefore ? (
-              <span className="flex flex-1 flex-col items-center rounded-lg border border-dashed border-red-500/40 bg-red-500/[0.03] p-2">
-                <span className="text-[9px] font-medium uppercase tracking-wider text-red-400/70">
-                  boundary
-                </span>
-                <span className={`mt-1 w-full truncate rounded-md border px-2 py-1.5 text-center text-xs font-semibold ${accent.node}`}>
-                  {v}
-                </span>
-              </span>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span className="flex flex-1 cursor-help flex-col items-center rounded-lg border border-dashed border-red-500/40 bg-red-500/[0.03] p-2">
+                    <span className="text-[9px] font-medium uppercase tracking-wider text-red-400/70">
+                      boundary
+                    </span>
+                    <span className={`mt-1 w-full truncate rounded-md border px-2 py-1.5 text-center text-xs font-semibold ${accent.node}`}>
+                      {v}
+                    </span>
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent className="max-w-[220px] text-xs">
+                  <strong>{v}</strong> is its own billing perimeter. Any byte leaving this dashed border is metered as egress.
+                </TooltipContent>
+              </Tooltip>
             ) : (
-              <span className={`flex-1 truncate rounded-md border px-2 py-2 text-center text-xs font-semibold ${accent.node}`}>
-                {v}
-              </span>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span className={`flex-1 cursor-help truncate rounded-md border px-2 py-2 text-center text-xs font-semibold ${accent.node}`}>
+                    {v}
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent className="max-w-[220px] text-xs">
+                  <strong>{v}</strong> runs inside Catalyst's unified network — no boundary to cross, nothing to meter.
+                </TooltipContent>
+              </Tooltip>
             )}
 
-            {/* Connector with animated packet + cost badge */}
-            {i < vendors.length - 1 && (
-              <span className="relative flex shrink-0 flex-col items-center gap-1 px-1">
-                <span className={`relative h-[2px] w-10 overflow-hidden rounded-full ${accent.line}`}>
-                  <span
-                    className={`absolute top-1/2 h-1.5 w-1.5 -translate-y-1/2 rounded-full ${accent.dot}`}
-                    style={{
-                      animation: `hop-packet 1.8s linear infinite`,
-                      animationDelay: `${i * 0.4}s`,
-                    }}
-                  />
+            {/* Connector */}
+            {i < vendors.length - 1 && (() => {
+              const isActive = i === activeHop;
+              return (
+                <span className={`relative flex shrink-0 flex-col items-center gap-1 px-1 transition-opacity ${isActive ? "opacity-100" : "opacity-60"}`}>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span className={`relative h-[2px] w-10 cursor-help overflow-hidden rounded-full ${accent.line} ${isActive ? "ring-2 ring-offset-2 ring-offset-background " + (isBefore ? "ring-red-500/40" : "ring-emerald-500/40") : ""}`}>
+                        <span
+                          className={`absolute top-1/2 h-1.5 w-1.5 -translate-y-1/2 rounded-full ${accent.dot}`}
+                          style={{
+                            animation: `hop-packet ${hopDuration}s linear infinite`,
+                            animationDelay: `${i * 0.4}s`,
+                            animationPlayState: isPlaying && !isActive ? "paused" : "running",
+                          }}
+                        />
+                      </span>
+                    </TooltipTrigger>
+                    <TooltipContent className="max-w-[220px] text-xs">
+                      Hop {i + 1}: the moving dot is your data crossing from <strong>{vendors[i]}</strong> to <strong>{vendors[i + 1]}</strong>. Speed scales with payload size.
+                    </TooltipContent>
+                  </Tooltip>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span className={`cursor-help rounded-full border px-1.5 py-0.5 text-[10px] font-bold leading-none ${accent.chip}`}>
+                        {isBefore ? formatCost(hopCost) : "$0"}
+                      </span>
+                    </TooltipTrigger>
+                    <TooltipContent className="max-w-[240px] text-xs">
+                      {isBefore
+                        ? <>Charged by <strong>{vendors[i]}</strong> at ~${EGRESS_PER_GB.toFixed(2)}/GB for bytes leaving its network. New meter starts at every boundary.</>
+                        : <>No boundary crossed inside Catalyst, so there's nothing to bill.</>}
+                    </TooltipContent>
+                  </Tooltip>
                 </span>
-                <span
-                  className={`rounded-full border px-1.5 py-0.5 text-[10px] font-bold leading-none ${accent.chip}`}
-                >
-                  {isBefore ? "$ egress" : "$0"}
-                </span>
-              </span>
-            )}
+              );
+            })()}
           </span>
         ))}
       </div>
 
-      {/* Legend */}
+      {/* Footnote */}
       <div className="mt-4 text-center text-[11px] text-muted-foreground">
         {isBefore
           ? `${vendors.length - 1} vendor boundaries crossed · ${vendors.length - 1} meters running`
@@ -968,6 +1204,8 @@ function HopDiagram({
     </div>
   );
 }
+
+
 
 
 function Index() {
