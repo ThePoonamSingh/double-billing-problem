@@ -398,7 +398,7 @@ function Index() {
             The hidden egress tax
           </p>
           <h1 className="text-4xl font-bold tracking-tight text-foreground sm:text-5xl">
-            One request. Three bills.
+            One request. Multiple egress costs.
           </h1>
           <p className="mt-4 max-w-2xl text-lg text-muted-foreground">
             Every time data crosses a vendor boundary in a typical stack, you
