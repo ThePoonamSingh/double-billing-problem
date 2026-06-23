@@ -764,25 +764,10 @@ function Index() {
           </p>
         </header>
 
-        <section className="space-y-4">
-          <FlowDiagram
-            title="Typical stack"
-            hops={hops}
-            totalLabel="≈ $0.99 / GB"
-            totalTone="bad"
-            caption="3 boundaries crossed · 3 egress bills"
-            idPrefix="typical"
-            animate
+        <section>
+          <SideBySideFlow
             onCoinDrop={handleCoinDrop}
             onReset={handleReset}
-          />
-          <FlowDiagram
-            title="Catalyst"
-            hops={catalystHops}
-            totalLabel="$0 / GB"
-            totalTone="good"
-            caption="Same path, one network, no egress fees"
-            idPrefix="catalyst"
           />
         </section>
 
