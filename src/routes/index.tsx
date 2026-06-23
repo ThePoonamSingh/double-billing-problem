@@ -523,6 +523,7 @@ function Index() {
             totalTone="bad"
             caption="3 boundaries crossed · 3 egress bills"
             idPrefix="typical"
+            animate
           />
           <FlowDiagram
             title="Catalyst"
