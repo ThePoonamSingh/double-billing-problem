@@ -950,8 +950,6 @@ function RealStackScenarios() {
               summary={active.before}
               hopDuration={hopDuration}
               hopCost={hopCost}
-              activeHop={stepIndex}
-              isPlaying={isPlaying}
             />
             <HopDiagram
               vendors={active.vendors}
@@ -959,80 +957,43 @@ function RealStackScenarios() {
               summary={active.after}
               hopDuration={hopDuration}
               hopCost={hopCost}
-              activeHop={stepIndex}
-              isPlaying={isPlaying}
             />
           </div>
 
-          {/* Walkthrough panel */}
+          {/* Walkthrough panel — all hops visible at once */}
           <div className="rounded-xl border border-border bg-background/40 p-5">
-            <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
-              <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                Request journey
-              </div>
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => setStepIndex((i) => Math.max(0, i - 1))}
-                  disabled={stepIndex === 0}
-                  className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-border bg-background text-muted-foreground transition-colors hover:text-foreground disabled:opacity-30"
-                  aria-label="Previous hop"
-                >
-                  <ChevronLeft className="h-4 w-4" />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (stepIndex >= active.steps.length - 1) setStepIndex(0);
-                    setIsPlaying((p) => !p);
-                  }}
-                  className="inline-flex items-center gap-1.5 rounded-md border border-primary bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground hover:opacity-90"
-                >
-                  {isPlaying ? <Pause className="h-3.5 w-3.5" /> : <Play className="h-3.5 w-3.5" />}
-                  {isPlaying ? "Pause" : "Play"}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setStepIndex((i) => Math.min(active.steps.length - 1, i + 1))}
-                  disabled={stepIndex >= active.steps.length - 1}
-                  className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-border bg-background text-muted-foreground transition-colors hover:text-foreground disabled:opacity-30"
-                  aria-label="Next hop"
-                >
-                  <ChevronRight className="h-4 w-4" />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => { setStepIndex(0); setIsPlaying(false); }}
-                  className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-border bg-background text-muted-foreground transition-colors hover:text-foreground"
-                  aria-label="Reset walkthrough"
-                >
-                  <RotateCcw className="h-4 w-4" />
-                </button>
-              </div>
+            <div className="mb-4 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              Request journey
             </div>
-            <div className="flex flex-wrap items-center gap-2 text-sm">
-              <span className="rounded-md border border-border bg-background px-2 py-0.5 font-semibold">{currentStep.from}</span>
-              <ArrowRight className="h-4 w-4 text-muted-foreground" />
-              <span className="rounded-md border border-border bg-background px-2 py-0.5 font-semibold">{currentStep.to}</span>
-              <span className="ml-auto rounded-full border border-red-500/30 bg-red-500/10 px-2 py-0.5 text-[11px] font-bold text-red-300">
-                {formatCost(hopCost)} egress
-              </span>
-            </div>
-            <p className="mt-3 text-sm leading-relaxed text-foreground/90">{currentStep.action}</p>
-            {/* Progress dots */}
-            <div className="mt-4 flex gap-1.5">
-              {active.steps.map((_, i) => (
-                <button
+            <ol className="space-y-3">
+              {active.steps.map((step, i) => (
+                <li
                   key={i}
-                  onClick={() => setStepIndex(i)}
-                  aria-label={`Go to hop ${i + 1}`}
-                  className={
-                    "h-1.5 flex-1 rounded-full transition-colors " +
-                    (i === stepIndex ? "bg-primary" : i < stepIndex ? "bg-primary/40" : "bg-border")
-                  }
-                />
+                  className="flex gap-3 rounded-lg border border-border/60 bg-background/60 p-3"
+                >
+                  <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-primary/40 bg-primary/10 text-[11px] font-bold text-primary">
+                    {i + 1}
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-2 text-sm">
+                      <span className="rounded-md border border-border bg-background px-2 py-0.5 font-semibold">
+                        {step.from}
+                      </span>
+                      <ArrowRight className="h-4 w-4 text-muted-foreground" />
+                      <span className="rounded-md border border-border bg-background px-2 py-0.5 font-semibold">
+                        {step.to}
+                      </span>
+                      <span className="ml-auto rounded-full border border-red-500/30 bg-red-500/10 px-2 py-0.5 text-[11px] font-bold text-red-300">
+                        {formatCost(hopCost)} egress
+                      </span>
+                    </div>
+                    <p className="mt-2 text-sm leading-relaxed text-foreground/90">
+                      {step.action}
+                    </p>
+                  </div>
+                </li>
               ))}
-            </div>
+            </ol>
           </div>
         </div>
       </div>
