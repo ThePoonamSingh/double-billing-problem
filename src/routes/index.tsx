@@ -756,7 +756,147 @@ function SideBySideFlow({
 
 
 
+type Scenario = {
+  id: string;
+  title: string;
+  vendors: string[];
+  problem: string;
+  before: string;
+  after: string;
+};
+
+const scenarios: Scenario[] = [
+  {
+    id: "saas",
+    title: "A 3-vendor SaaS stack",
+    vendors: ["Supabase", "AWS S3", "Azure"],
+    problem:
+      "A SaaS app built across three providers pays egress every time the stack talks to itself. The app queries Supabase, retrieves files from S3, and delivers responses via Azure. Each hop crosses a provider boundary. Pulling 100MB from the database and sending that same 100MB to the browser is billed twice, even if the data never left the app.",
+    before: "3× egress fees",
+    after: "$0 egress",
+  },
+  {
+    id: "media",
+    title: "Media platform startup",
+    vendors: ["AWS S3", "GCP", "Cloudflare CDN"],
+    problem:
+      "A video platform built across three providers pays egress at every stage of the pipeline. Uploads pulled from S3, transcoded on GCP, then thumbnails pushed to Cloudflare. Each step crosses a provider boundary and starts a new meter. At 50,000 uploads/month, per-video cents become thousands of dollars in transfer fees alone.",
+    before: "Cost scales with every upload",
+    after: "$0 egress",
+  },
+  {
+    id: "etl",
+    title: "The ETL pipeline",
+    vendors: ["S3 Data Lake", "Snowflake", "DigitalOcean"],
+    problem:
+      "A nightly ETL job moves gigabytes from S3 to Snowflake to a dashboard server. Each sync crosses egress boundaries, starting a meter. The data belongs to the team running the pipeline — they just keep paying to move it around their own stack. By year end, the egress bill exceeded the actual compute cost.",
+    before: "Daily egress × 365",
+    after: "$0 egress",
+  },
+  {
+    id: "ecommerce",
+    title: "eCommerce backend",
+    vendors: ["Firebase", "MongoDB Atlas", "Heroku"],
+    problem:
+      "A single customer page load crosses three provider boundaries. Auth check to Firebase, product fetch from Atlas, inventory sync from Heroku. Three round trips, three egress meters for one page. Multiply that by millions of page loads per month, and the egress bill grows significantly.",
+    before: "Grows with every visitor",
+    after: "$0 egress",
+  },
+];
+
+function RealStackScenarios() {
+  const [activeId, setActiveId] = useState(scenarios[0].id);
+  const active = scenarios.find((s) => s.id === activeId)!;
+
+  return (
+    <div className="rounded-2xl border border-border bg-card/40 p-6 sm:p-8">
+      <div className="mb-6">
+        <h2 className="text-2xl font-semibold tracking-tight sm:text-3xl">
+          See how this plays out in real stacks
+        </h2>
+        <p className="mt-2 text-sm text-muted-foreground">
+          Pick a scenario to see the stack, the problem, and what changes with Catalyst.
+        </p>
+      </div>
+
+      <div className="flex flex-wrap gap-2" role="tablist">
+        {scenarios.map((s, i) => {
+          const isActive = s.id === activeId;
+          return (
+            <button
+              key={s.id}
+              role="tab"
+              aria-selected={isActive}
+              onClick={() => setActiveId(s.id)}
+              className={
+                "rounded-full border px-4 py-2 text-sm transition-colors " +
+                (isActive
+                  ? "border-primary bg-primary text-primary-foreground"
+                  : "border-border bg-background/50 text-muted-foreground hover:text-foreground hover:border-foreground/30")
+              }
+            >
+              <span className="mr-2 inline-flex h-5 w-5 items-center justify-center rounded-full bg-foreground/10 text-xs">
+                {i + 1}
+              </span>
+              {s.title}
+            </button>
+          );
+        })}
+      </div>
+
+      <div key={active.id} className="mt-6 animate-fade-in">
+        <div className="mb-5 flex flex-wrap items-center gap-2">
+          <span className="text-xs uppercase tracking-wide text-muted-foreground">
+            Stack used:
+          </span>
+          {active.vendors.map((v, i) => (
+            <span key={v} className="flex items-center gap-2">
+              <span className="rounded-md border border-border bg-background px-2.5 py-1 text-sm font-medium">
+                {v}
+              </span>
+              {i < active.vendors.length - 1 && (
+                <ArrowRight className="h-4 w-4 text-muted-foreground" />
+              )}
+            </span>
+          ))}
+        </div>
+
+        <div className="grid gap-4 md:grid-cols-[1fr_auto_auto] md:items-stretch">
+          <div className="rounded-xl border border-border bg-background/40 p-5">
+            <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              The problem
+            </div>
+            <p className="text-sm leading-relaxed text-foreground/90">
+              {active.problem}
+            </p>
+          </div>
+
+          <div className="rounded-xl border border-red-500/30 bg-red-500/5 p-5 md:w-56">
+            <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-red-400">
+              Before Catalyst
+            </div>
+            <div className="text-lg font-semibold text-foreground">
+              {active.before}
+            </div>
+          </div>
+
+          <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/5 p-5 md:w-56">
+            <div className="mb-2 inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-emerald-400">
+              <Sparkles className="h-3.5 w-3.5" />
+              After Catalyst
+            </div>
+            <div className="text-lg font-semibold text-foreground">
+              {active.after}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function Index() {
+
   const billedTotal = hops.filter((h) => h.billed).length;
   const [coinsDropped, setCoinsDropped] = useState(0);
   const handleCoinDrop = useCallback(() => {
