@@ -818,6 +818,12 @@ function Index() {
           />
         </section>
 
+        <section className="mt-16">
+          <RealStackScenarios />
+        </section>
+
+
+
 
         <section className="mt-12">
           <Accordion type="single" collapsible className="w-full">
