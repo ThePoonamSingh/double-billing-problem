@@ -44,6 +44,8 @@ type Hop = {
   billed: boolean;
   rate: string;
   tip: string;
+  why: string;
+  sample: string;
 };
 
 const hops: Hop[] = [
@@ -54,6 +56,8 @@ const hops: Hop[] = [
     billed: false,
     rate: "free",
     tip: "The browser sends a request. No egress cost here — ingress is free.",
+    why: "No coin drops — inbound bytes are free on every major cloud. You only pay when data leaves a vendor's network.",
+    sample: "100 GB in × $0.00 = $0.00",
   },
   {
     id: "app",
@@ -62,6 +66,8 @@ const hops: Hop[] = [
     billed: true,
     rate: "$0.12 / GB",
     tip: "Your app server (e.g. Vercel) responds. Bytes leaving its network are billed as egress.",
+    why: "The response leaves the app host's network to reach the user — that crossing is metered as egress.",
+    sample: "100 GB out × $0.12 = $12.00",
   },
   {
     id: "db",
@@ -70,6 +76,8 @@ const hops: Hop[] = [
     billed: true,
     rate: "$0.09 / GB",
     tip: "Managed DB ships rows to the app host. That cross-network read is billed.",
+    why: "Rows leave the managed DB's network to reach the app host — a separate vendor boundary, separately billed.",
+    sample: "100 GB read × $0.09 = $9.00",
   },
   {
     id: "storage",
@@ -78,6 +86,8 @@ const hops: Hop[] = [
     billed: true,
     rate: "$0.12 / GB",
     tip: "S3-style storage streams the asset out. Egress is metered per GB.",
+    why: "Assets leave the object store's network on every download — metered per GB regardless of destination.",
+    sample: "100 GB out × $0.12 = $12.00",
   },
 ];
 
@@ -89,6 +99,11 @@ const catalystHops: Hop[] = hops.map((h) => ({
     h.id === "user"
       ? h.tip
       : "Runs inside Catalyst's network — bytes never cross a billable boundary.",
+  why:
+    h.id === "user"
+      ? h.why
+      : "App, DB, and storage share one network. No vendor boundary is crossed, so no egress meter ticks.",
+  sample: "100 GB × $0.00 = $0.00",
 }));
 
 function CoinBadge() {
