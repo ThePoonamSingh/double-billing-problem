@@ -46,6 +46,10 @@ type Hop = {
   tip: string;
   why: string;
   sample: string;
+  /** Cost for the sample 100 GB / month scenario, in USD. */
+  cost: number;
+  /** Short reason rendered inline next to the hop in side-by-side view. */
+  reason: string;
 };
 
 const hops: Hop[] = [
@@ -58,6 +62,8 @@ const hops: Hop[] = [
     tip: "The browser sends a request. No egress cost here — ingress is free.",
     why: "No coin drops — inbound bytes are free on every major cloud. You only pay when data leaves a vendor's network.",
     sample: "100 GB in × $0.00 = $0.00",
+    cost: 0,
+    reason: "Ingress is free everywhere",
   },
   {
     id: "app",
@@ -68,6 +74,8 @@ const hops: Hop[] = [
     tip: "Your app server (e.g. Vercel) responds. Bytes leaving its network are billed as egress.",
     why: "The response leaves the app host's network to reach the user — that crossing is metered as egress.",
     sample: "100 GB out × $0.12 = $12.00",
+    cost: 12,
+    reason: "Leaves Vercel network → user",
   },
   {
     id: "db",
@@ -78,6 +86,8 @@ const hops: Hop[] = [
     tip: "Managed DB ships rows to the app host. That cross-network read is billed.",
     why: "Rows leave the managed DB's network to reach the app host — a separate vendor boundary, separately billed.",
     sample: "100 GB read × $0.09 = $9.00",
+    cost: 9,
+    reason: "Leaves DB network → app",
   },
   {
     id: "storage",
@@ -88,6 +98,8 @@ const hops: Hop[] = [
     tip: "S3-style storage streams the asset out. Egress is metered per GB.",
     why: "Assets leave the object store's network on every download — metered per GB regardless of destination.",
     sample: "100 GB out × $0.12 = $12.00",
+    cost: 12,
+    reason: "Leaves S3 network → app",
   },
 ];
 
@@ -95,6 +107,11 @@ const catalystHops: Hop[] = hops.map((h) => ({
   ...h,
   billed: false,
   rate: "$0",
+  cost: 0,
+  reason:
+    h.id === "user"
+      ? "Ingress is free everywhere"
+      : "Same network — no boundary crossed",
   tip:
     h.id === "user"
       ? h.tip
