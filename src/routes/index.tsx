@@ -333,7 +333,7 @@ function StackColumn({
             className="pointer-events-none absolute left-7 z-20 h-3 w-3 -translate-x-1/2 rounded-full bg-blue-500 shadow-[0_0_0_4px_rgba(59,130,246,0.25)]"
             style={{
               top: `${packetIdx * 76 + 28}px`,
-              transition: "top 900ms cubic-bezier(0.65, 0, 0.35, 1)",
+              transition: "top 400ms cubic-bezier(0.65, 0, 0.35, 1)",
             }}
           />
         )}
