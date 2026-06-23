@@ -999,52 +999,6 @@ function Index() {
           />
         </section>
 
-        <section className="mt-8">
-          <SampleJourney />
-        </section>
-
-        <section className="mt-12">
-          <h2 className="mb-4 text-xl font-semibold">Side by side</h2>
-          <div className="overflow-hidden rounded-xl border bg-card shadow-sm">
-            <table className="w-full text-sm">
-              <thead className="bg-muted/50 text-left">
-                <tr>
-                  <th className="px-4 py-3 font-medium text-muted-foreground">
-                    Data hop
-                  </th>
-                  <th className="px-4 py-3 font-medium text-muted-foreground">
-                    Typical stack
-                  </th>
-                  <th className="px-4 py-3 font-medium text-muted-foreground">
-                    Catalyst
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {rows.map((r) => (
-                  <tr key={r.hop} className="border-t">
-                    <td className="px-4 py-3 font-medium">{r.hop}</td>
-                    <td className="px-4 py-3">
-                      <span className="inline-flex items-center gap-1.5 text-red-700">
-                        <X className="h-4 w-4" /> {r.typical}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3">
-                      <span className="inline-flex items-center gap-1.5 text-emerald-700">
-                        <Check className="h-4 w-4" /> {r.catalyst}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </section>
-
-        <section className="mt-12">
-          <h2 className="mb-4 text-xl font-semibold">What you'd save</h2>
-          <BreakEvenCalculator />
-        </section>
 
         <section className="mt-12">
           <Accordion type="single" collapsible className="w-full">
