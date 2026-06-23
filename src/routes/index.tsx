@@ -6,10 +6,7 @@ import {
   Database,
   HardDrive,
   ArrowRight,
-  Check,
-  X,
   Play,
-  Pause,
   ChevronLeft,
   ChevronRight,
   RotateCcw,
@@ -21,7 +18,6 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
-import { Slider } from "@/components/ui/slider";
 import {
   Tooltip,
   TooltipContent,
@@ -759,184 +755,6 @@ function SideBySideFlow({
 }
 
 
-function SampleJourney() {
-  return (
-    <div className="rounded-xl border bg-card p-6 shadow-sm">
-      <div className="mb-4 flex items-center justify-between">
-        <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-          Sample request
-        </h3>
-        <span className="rounded-full bg-muted px-3 py-1 font-mono text-xs">
-          GET /profile/42
-        </span>
-      </div>
-
-      <ol className="space-y-3 text-sm">
-        <li className="flex gap-3">
-          <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-muted font-mono text-xs">
-            1
-          </span>
-          <div>
-            <span className="font-medium">User → App host</span>
-            <span className="ml-2 text-muted-foreground">
-              Browser requests profile page (2 KB in, free)
-            </span>
-          </div>
-        </li>
-        <li className="flex gap-3">
-          <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-red-100 font-mono text-xs text-red-700">
-            2
-          </span>
-          <div>
-            <span className="font-medium">App host → Database</span>
-            <span className="ml-2 text-muted-foreground">
-              Query user row, 8 KB returned
-            </span>
-            <span className="ml-2 font-mono text-xs text-red-700">
-              + egress
-            </span>
-          </div>
-        </li>
-        <li className="flex gap-3">
-          <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-red-100 font-mono text-xs text-red-700">
-            3
-          </span>
-          <div>
-            <span className="font-medium">App host → Storage</span>
-            <span className="ml-2 text-muted-foreground">
-              Fetch avatar.jpg, 240 KB
-            </span>
-            <span className="ml-2 font-mono text-xs text-red-700">
-              + egress
-            </span>
-          </div>
-        </li>
-        <li className="flex gap-3">
-          <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-red-100 font-mono text-xs text-red-700">
-            4
-          </span>
-          <div>
-            <span className="font-medium">App host → User</span>
-            <span className="ml-2 text-muted-foreground">
-              Rendered HTML + avatar, 260 KB out
-            </span>
-            <span className="ml-2 font-mono text-xs text-red-700">
-              + egress
-            </span>
-          </div>
-        </li>
-      </ol>
-
-      <div className="mt-5 grid grid-cols-2 gap-3 border-t pt-4 text-sm">
-        <div className="rounded-lg bg-red-50 px-3 py-2">
-          <div className="text-xs text-red-700">Typical stack</div>
-          <div className="font-mono font-semibold text-red-700">
-            ~$0.000165 / request
-          </div>
-        </div>
-        <div className="rounded-lg bg-emerald-50 px-3 py-2">
-          <div className="text-xs text-emerald-700">Catalyst</div>
-          <div className="font-mono font-semibold text-emerald-700">
-            $0.00 / request
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// Cost per request: 508 KB out * $0.33 / GB = ~$0.000165
-const KB_PER_REQ = 508;
-const TYPICAL_RATE_PER_GB = 0.33;
-const COST_PER_REQ =
-  (KB_PER_REQ / 1_000_000) * TYPICAL_RATE_PER_GB;
-
-function BreakEvenCalculator() {
-  const [millions, setMillions] = useState<number>(1);
-  const requests = millions * 1_000_000;
-  const typicalCost = requests * COST_PER_REQ;
-  const gb = (requests * KB_PER_REQ) / 1_000_000;
-
-  return (
-    <div className="rounded-xl border bg-card p-6 shadow-sm">
-      <div className="mb-1 flex items-baseline justify-between">
-        <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-          Egress savings calculator
-        </h3>
-        <span className="text-xs text-muted-foreground">
-          assuming 508 KB / request
-        </span>
-      </div>
-      <p className="mb-6 text-sm text-muted-foreground">
-        Drag to see what egress costs at your scale.
-      </p>
-
-      <div className="mb-6">
-        <div className="mb-2 flex items-baseline justify-between">
-          <span className="text-sm font-medium">Monthly requests</span>
-          <span className="font-mono text-sm">
-            {requests.toLocaleString()}
-          </span>
-        </div>
-        <Slider
-          value={[millions]}
-          min={0.1}
-          max={100}
-          step={0.1}
-          onValueChange={(v) => setMillions(v[0])}
-        />
-        <div className="mt-1 flex justify-between text-xs text-muted-foreground">
-          <span>100K</span>
-          <span>100M</span>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-2 gap-3">
-        <div className="rounded-lg border bg-red-50 p-4">
-          <div className="text-xs font-medium uppercase tracking-wide text-red-700">
-            Typical stack
-          </div>
-          <div className="mt-1 font-mono text-2xl font-bold text-red-700">
-            ${typicalCost.toFixed(2)}
-          </div>
-          <div className="mt-1 text-xs text-red-700/80">
-            {gb.toFixed(1)} GB egress / mo
-          </div>
-        </div>
-        <div className="rounded-lg border bg-emerald-50 p-4">
-          <div className="text-xs font-medium uppercase tracking-wide text-emerald-700">
-            Catalyst
-          </div>
-          <div className="mt-1 font-mono text-2xl font-bold text-emerald-700">
-            $0.00
-          </div>
-          <div className="mt-1 text-xs text-emerald-700/80">
-            same traffic, $0 egress
-          </div>
-        </div>
-      </div>
-
-      <p className="mt-4 rounded-lg bg-muted/50 px-3 py-2 text-sm">
-        At this volume you save{" "}
-        <span className="font-mono font-semibold">
-          ${typicalCost.toFixed(2)}
-        </span>{" "}
-        / month — or{" "}
-        <span className="font-mono font-semibold">
-          ${(typicalCost * 12).toFixed(2)}
-        </span>{" "}
-        / year.
-      </p>
-    </div>
-  );
-}
-
-const rows = [
-  { hop: "App host → User (egress)", typical: "$0.33/GB", catalyst: "$0" },
-  { hop: "Database → App host", typical: "$0.33/GB", catalyst: "$0" },
-  { hop: "Storage → App host", typical: "$0.33/GB", catalyst: "$0" },
-  { hop: "Storage → User (direct)", typical: "$0.33/GB", catalyst: "$0" },
-];
 
 function Index() {
   const billedTotal = hops.filter((h) => h.billed).length;
@@ -999,52 +817,6 @@ function Index() {
           />
         </section>
 
-        <section className="mt-8">
-          <SampleJourney />
-        </section>
-
-        <section className="mt-12">
-          <h2 className="mb-4 text-xl font-semibold">Side by side</h2>
-          <div className="overflow-hidden rounded-xl border bg-card shadow-sm">
-            <table className="w-full text-sm">
-              <thead className="bg-muted/50 text-left">
-                <tr>
-                  <th className="px-4 py-3 font-medium text-muted-foreground">
-                    Data hop
-                  </th>
-                  <th className="px-4 py-3 font-medium text-muted-foreground">
-                    Typical stack
-                  </th>
-                  <th className="px-4 py-3 font-medium text-muted-foreground">
-                    Catalyst
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {rows.map((r) => (
-                  <tr key={r.hop} className="border-t">
-                    <td className="px-4 py-3 font-medium">{r.hop}</td>
-                    <td className="px-4 py-3">
-                      <span className="inline-flex items-center gap-1.5 text-red-700">
-                        <X className="h-4 w-4" /> {r.typical}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3">
-                      <span className="inline-flex items-center gap-1.5 text-emerald-700">
-                        <Check className="h-4 w-4" /> {r.catalyst}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </section>
-
-        <section className="mt-12">
-          <h2 className="mb-4 text-xl font-semibold">What you'd save</h2>
-          <BreakEvenCalculator />
-        </section>
 
         <section className="mt-12">
           <Accordion type="single" collapsible className="w-full">
