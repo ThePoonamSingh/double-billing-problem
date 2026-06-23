@@ -981,6 +981,31 @@ function RealStackScenarios() {
             </div>
           </div>
 
+          {/* Legend */}
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-lg border border-border/60 bg-background/40 px-3 py-2 text-[11px] text-muted-foreground">
+            <span className="font-semibold uppercase tracking-wide text-foreground/80">Legend</span>
+            <span className="inline-flex items-center gap-1.5">
+              <span className="inline-block h-3 w-4 rounded-sm border border-dashed border-red-500/60 bg-red-500/10" />
+              Vendor billing boundary
+            </span>
+            <span className="inline-flex items-center gap-1.5">
+              <span className="relative inline-block h-[2px] w-6 rounded-full bg-gradient-to-r from-red-500/20 via-red-500/70 to-red-500/20">
+                <span className="absolute top-1/2 left-1/2 h-1.5 w-1.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-red-400 shadow-[0_0_8px_rgba(239,68,68,0.8)]" />
+              </span>
+              Data packet in flight
+            </span>
+            <span className="inline-flex items-center gap-1.5">
+              <span className="inline-flex items-center gap-0.5 rounded-full border border-red-500/30 bg-red-500/10 px-1.5 py-0.5 font-bold text-red-300">
+                <DollarSign className="h-2.5 w-2.5" /> egress
+              </span>
+              Charged at boundary crossing
+            </span>
+            <span className="inline-flex items-center gap-1.5">
+              <ShieldCheck className="h-3.5 w-3.5 text-emerald-400" />
+              Inside Catalyst — no boundary, no meter
+            </span>
+          </div>
+
           {/* Visual hop diagrams */}
           <div className="grid gap-4 lg:grid-cols-2">
             <HopDiagram
