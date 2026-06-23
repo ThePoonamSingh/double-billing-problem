@@ -1030,33 +1030,49 @@ function RealStackScenarios() {
               Request journey
             </div>
             <ol className="space-y-3">
-              {active.steps.map((step, i) => (
-                <li
-                  key={i}
-                  className="flex gap-3 rounded-lg border border-border/60 bg-background/60 p-3"
-                >
-                  <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-primary/40 bg-primary/10 text-[11px] font-bold text-primary">
-                    {i + 1}
-                  </span>
-                  <div className="min-w-0 flex-1">
-                    <div className="flex flex-wrap items-center gap-2 text-sm">
-                      <span className="rounded-md border border-border bg-background px-2 py-0.5 font-semibold">
-                        {step.from}
-                      </span>
-                      <ArrowRight className="h-4 w-4 text-muted-foreground" />
-                      <span className="rounded-md border border-border bg-background px-2 py-0.5 font-semibold">
-                        {step.to}
-                      </span>
-                      <span className="ml-auto rounded-full border border-red-500/30 bg-red-500/10 px-2 py-0.5 text-[11px] font-bold text-red-300">
-                        {formatCost(hopCost)} egress
-                      </span>
+              {active.steps.map((step, i) => {
+                const from = getVendorStyle(step.from);
+                const to = getVendorStyle(step.to);
+                const FromIcon = from.icon;
+                const ToIcon = to.icon;
+                return (
+                  <li
+                    key={i}
+                    className="flex gap-3 rounded-lg border border-border/60 bg-background/60 p-3"
+                  >
+                    <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-red-500/40 bg-red-500/10 text-[11px] font-bold text-red-300">
+                      {i + 1}
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center gap-2 text-sm">
+                        <span className={`inline-flex items-center gap-1.5 rounded-md border border-border bg-background px-2 py-0.5 font-semibold ring-1 ${from.ring}`}>
+                          <span className={`inline-flex h-4 w-4 items-center justify-center rounded-sm ${from.tint}`}>
+                            <FromIcon className="h-3 w-3" />
+                          </span>
+                          {step.from}
+                        </span>
+                        <span className="inline-flex items-center gap-1 text-red-400">
+                          <ArrowRight className="h-4 w-4" />
+                          <Gauge className="h-3.5 w-3.5" aria-label="meter starts" />
+                        </span>
+                        <span className={`inline-flex items-center gap-1.5 rounded-md border border-border bg-background px-2 py-0.5 font-semibold ring-1 ${to.ring}`}>
+                          <span className={`inline-flex h-4 w-4 items-center justify-center rounded-sm ${to.tint}`}>
+                            <ToIcon className="h-3 w-3" />
+                          </span>
+                          {step.to}
+                        </span>
+                        <span className="ml-auto inline-flex items-center gap-0.5 rounded-full border border-red-500/30 bg-red-500/10 px-2 py-0.5 text-[11px] font-bold text-red-300">
+                          <DollarSign className="h-3 w-3" />
+                          {formatCost(hopCost)} egress
+                        </span>
+                      </div>
+                      <p className="mt-2 text-sm leading-relaxed text-foreground/90">
+                        {step.action}
+                      </p>
                     </div>
-                    <p className="mt-2 text-sm leading-relaxed text-foreground/90">
-                      {step.action}
-                    </p>
-                  </div>
-                </li>
-              ))}
+                  </li>
+                );
+              })}
             </ol>
           </div>
         </div>
