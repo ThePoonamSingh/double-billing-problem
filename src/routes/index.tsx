@@ -608,7 +608,7 @@ function Index() {
                   (revealed ? "text-muted-foreground/60" : "text-foreground")
                 }
               >
-                You pay every time your data moves.
+                Why pay every time your data moves?
               </span>
               <span
                 aria-hidden
@@ -624,7 +624,7 @@ function Index() {
                   : "translate-y-2 opacity-0")
               }
             >
-              Not with Catalyst.
+              With Catalyst, you don't.
             </span>
           </h1>
           <p className="mt-4 max-w-2xl text-lg text-muted-foreground">
