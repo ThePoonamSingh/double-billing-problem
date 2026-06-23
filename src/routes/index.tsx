@@ -46,6 +46,10 @@ type Hop = {
   tip: string;
   why: string;
   sample: string;
+  /** Cost for the sample 100 GB / month scenario, in USD. */
+  cost: number;
+  /** Short reason rendered inline next to the hop in side-by-side view. */
+  reason: string;
 };
 
 const hops: Hop[] = [
@@ -58,6 +62,8 @@ const hops: Hop[] = [
     tip: "The browser sends a request. No egress cost here — ingress is free.",
     why: "No coin drops — inbound bytes are free on every major cloud. You only pay when data leaves a vendor's network.",
     sample: "100 GB in × $0.00 = $0.00",
+    cost: 0,
+    reason: "Ingress is free everywhere",
   },
   {
     id: "app",
@@ -68,6 +74,8 @@ const hops: Hop[] = [
     tip: "Your app server (e.g. Vercel) responds. Bytes leaving its network are billed as egress.",
     why: "The response leaves the app host's network to reach the user — that crossing is metered as egress.",
     sample: "100 GB out × $0.12 = $12.00",
+    cost: 12,
+    reason: "Leaves Vercel network → user",
   },
   {
     id: "db",
@@ -78,6 +86,8 @@ const hops: Hop[] = [
     tip: "Managed DB ships rows to the app host. That cross-network read is billed.",
     why: "Rows leave the managed DB's network to reach the app host — a separate vendor boundary, separately billed.",
     sample: "100 GB read × $0.09 = $9.00",
+    cost: 9,
+    reason: "Leaves DB network → app",
   },
   {
     id: "storage",
@@ -88,6 +98,8 @@ const hops: Hop[] = [
     tip: "S3-style storage streams the asset out. Egress is metered per GB.",
     why: "Assets leave the object store's network on every download — metered per GB regardless of destination.",
     sample: "100 GB out × $0.12 = $12.00",
+    cost: 12,
+    reason: "Leaves S3 network → app",
   },
 ];
 
@@ -95,6 +107,11 @@ const catalystHops: Hop[] = hops.map((h) => ({
   ...h,
   billed: false,
   rate: "$0",
+  cost: 0,
+  reason:
+    h.id === "user"
+      ? "Ingress is free everywhere"
+      : "Same network — no boundary crossed",
   tip:
     h.id === "user"
       ? h.tip
@@ -106,298 +123,409 @@ const catalystHops: Hop[] = hops.map((h) => ({
   sample: "100 GB × $0.00 = $0.00",
 }));
 
-function CoinBadge() {
+function HopRow({
+  hop,
+  idPrefix,
+  active,
+  passed,
+  dim,
+  onToggle,
+  showCoin,
+}: {
+  hop: Hop;
+  idPrefix: string;
+  active: boolean;
+  passed: boolean;
+  dim: boolean;
+  onToggle: () => void;
+  showCoin: boolean;
+}) {
+  const Icon = hop.icon;
   return (
-    <span
-      aria-label="Billed hop"
-      className="absolute -top-2 -right-2 flex h-6 w-6 items-center justify-center rounded-full bg-red-500 text-[11px] font-bold text-white shadow-sm ring-2 ring-background"
+    <div
+      className={
+        "relative flex items-stretch gap-3 transition " +
+        (dim ? "opacity-40" : "")
+      }
     >
-      $
-    </span>
+      {/* Icon column with vertical connector */}
+      <div className="relative flex w-14 flex-col items-center">
+        <Tooltip
+          open={active ? true : undefined}
+          onOpenChange={(o) => {
+            if (!o && active) onToggle();
+          }}
+        >
+          <TooltipTrigger asChild>
+            <button
+              type="button"
+              onClick={onToggle}
+              aria-label={`${hop.label} hop`}
+              className={
+                "relative z-10 flex h-14 w-14 items-center justify-center rounded-xl border bg-background transition " +
+                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring " +
+                (active
+                  ? hop.billed
+                    ? "scale-110 border-red-500 ring-2 ring-red-200"
+                    : "scale-110 border-emerald-500 ring-2 ring-emerald-200"
+                  : passed
+                    ? hop.billed
+                      ? "border-red-400"
+                      : "border-emerald-400"
+                    : "hover:scale-105")
+              }
+            >
+              <Icon
+                className={
+                  "h-6 w-6 transition " +
+                  (passed
+                    ? hop.billed
+                      ? "text-red-600"
+                      : "text-emerald-600"
+                    : "text-foreground")
+                }
+              />
+              {hop.billed && (
+                <span
+                  aria-label="Billed hop"
+                  className="absolute -top-2 -right-2 flex h-6 w-6 items-center justify-center rounded-full bg-red-500 text-[11px] font-bold text-white shadow-sm ring-2 ring-background"
+                >
+                  $
+                </span>
+              )}
+              {showCoin && hop.billed && (
+                <span
+                  key={`coin-${idPrefix}-${hop.id}`}
+                  aria-hidden
+                  className="pointer-events-none absolute left-1/2 top-1/2 flex h-5 w-5 -translate-x-1/2 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white shadow"
+                  style={{
+                    animation:
+                      "coinDrop 900ms cubic-bezier(0.4, 0, 0.2, 1) forwards",
+                  }}
+                >
+                  $
+                </span>
+              )}
+            </button>
+          </TooltipTrigger>
+          <TooltipContent side="top" className="max-w-[260px] p-3">
+            <div className="space-y-2">
+              <p className="text-xs font-semibold text-foreground">
+                {hop.label} ·{" "}
+                <span
+                  className={
+                    hop.billed ? "text-red-600" : "text-emerald-600"
+                  }
+                >
+                  {hop.billed ? `egress ${hop.rate}` : hop.rate}
+                </span>
+              </p>
+              <p className="text-xs leading-relaxed text-muted-foreground">
+                {hop.why}
+              </p>
+              <div className="rounded border border-border bg-muted/50 px-2 py-1.5">
+                <p className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                  Sample · 100 GB / month
+                </p>
+                <p
+                  className={
+                    "font-mono text-xs " +
+                    (hop.billed ? "text-red-600" : "text-emerald-600")
+                  }
+                >
+                  {hop.sample}
+                </p>
+              </div>
+            </div>
+          </TooltipContent>
+        </Tooltip>
+      </div>
+
+      {/* Label / reason / per-hop cost */}
+      <div className="flex flex-1 items-center justify-between gap-3 pb-1">
+        <div className="min-w-0">
+          <div className="text-sm font-medium text-foreground">
+            {hop.label}
+          </div>
+          <div className="truncate text-xs text-muted-foreground">
+            {hop.reason}
+          </div>
+        </div>
+        <div
+          className={
+            "shrink-0 rounded-md px-2 py-1 font-mono text-xs transition " +
+            (hop.billed
+              ? passed
+                ? "bg-red-500 text-white"
+                : "bg-red-50 text-red-700"
+              : "bg-emerald-50 text-emerald-700")
+          }
+        >
+          {hop.billed ? `+ $${hop.cost.toFixed(2)}` : "$0.00"}
+        </div>
+      </div>
+    </div>
   );
 }
 
-function FlowDiagram({
+function StackColumn({
   title,
+  tone,
   hops,
-  totalLabel,
-  totalTone,
-  caption,
   idPrefix,
-  animate = false,
-  onCoinDrop,
-  onReset,
+  packetIdx,
+  packetActive,
+  activeId,
+  setActiveId,
+  runningTotal,
+  totalLabel,
+  caption,
+  badge,
 }: {
   title: string;
+  tone: "bad" | "good";
   hops: Hop[];
-  totalLabel: string;
-  totalTone: "bad" | "good";
-  caption: string;
   idPrefix: string;
-  animate?: boolean;
-  onCoinDrop?: (index: number) => void;
-  onReset?: () => void;
+  packetIdx: number;
+  packetActive: boolean;
+  activeId: string | null;
+  setActiveId: (id: string | null) => void;
+  runningTotal: number;
+  totalLabel: string;
+  caption: string;
+  badge: string;
 }) {
-  const [activeId, setActiveId] = useState<string | null>(null);
-  const rowRef = useRef<HTMLDivElement | null>(null);
-  const hopRefs = useRef<Array<HTMLButtonElement | null>>([]);
-  const [positions, setPositions] = useState<number[]>([]);
-  const [packetIdx, setPacketIdx] = useState<number>(0);
-  const [droppedCoins, setDroppedCoins] = useState<Set<number>>(new Set());
-
-  // Measure hop x-centers relative to the row.
-  useLayoutEffect(() => {
-    if (!animate) return;
-    const measure = () => {
-      const row = rowRef.current;
-      if (!row) return;
-      const rowBox = row.getBoundingClientRect();
-      const xs = hopRefs.current.map((el) => {
-        if (!el) return 0;
-        const b = el.getBoundingClientRect();
-        return b.left - rowBox.left + b.width / 2;
-      });
-      setPositions(xs);
-    };
-    measure();
-    const ro = new ResizeObserver(measure);
-    if (rowRef.current) ro.observe(rowRef.current);
-    return () => ro.disconnect();
-  }, [animate, hops.length]);
-
-  // Drive the journey loop.
-  useEffect(() => {
-    if (!animate || positions.length === 0) return;
-    let timer: ReturnType<typeof setTimeout>;
-    const tick = () => {
-      setPacketIdx((prev) => {
-        const next = prev + 1;
-        if (next >= hops.length) {
-          // Reset after a pause.
-          timer = setTimeout(() => {
-            setDroppedCoins(new Set());
-            setPacketIdx(0);
-            onReset?.();
-          }, 1800);
-          return prev;
-        }
-        if (hops[next].billed) {
-          setDroppedCoins((d) => {
-            const n = new Set(d);
-            n.add(next);
-            return n;
-          });
-          onCoinDrop?.(next);
-        }
-        timer = setTimeout(tick, 1100);
-        return next;
-      });
-    };
-    timer = setTimeout(tick, 900);
-    return () => clearTimeout(timer);
-  }, [animate, positions.length, hops, onCoinDrop, onReset]);
-
-  const packetX = positions[packetIdx] ?? 0;
-  const packetReady = animate && positions.length > 0;
-
+  const isBad = tone === "bad";
   return (
-    <div className="rounded-xl border bg-card p-6 shadow-sm">
-      <div className="mb-6 flex items-center justify-between">
+    <div
+      className={
+        "flex flex-col rounded-xl border bg-card p-5 shadow-sm " +
+        (isBad ? "border-red-200/70" : "border-emerald-200/70")
+      }
+    >
+      <div className="mb-1 flex items-center justify-between">
         <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
           {title}
         </h3>
         <span
           className={
-            "rounded-full px-3 py-1 text-sm font-bold " +
-            (totalTone === "bad"
+            "rounded-full px-2.5 py-0.5 text-[11px] font-semibold " +
+            (isBad
               ? "bg-red-100 text-red-700"
               : "bg-emerald-100 text-emerald-700")
           }
         >
-          {totalLabel}
+          {badge}
         </span>
       </div>
+      <p className="mb-4 text-xs text-muted-foreground">{caption}</p>
 
-      {/* Legend */}
-      <div className="mb-4 flex flex-wrap items-center gap-x-5 gap-y-2 text-xs text-muted-foreground">
-        <span className="flex items-center gap-2">
-          <span className="inline-block h-3 w-3 rounded-full bg-blue-500 shadow-[0_0_0_3px_rgba(59,130,246,0.25)]" />
-          Request packet
-        </span>
-        <span className="flex items-center gap-2">
-          <span className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[9px] font-bold text-white">
-            $
-          </span>
-          Billed egress hop
-        </span>
-        <span className="flex items-center gap-2">
-          <span className="inline-block h-3 w-3 rounded-sm border bg-background" />
-          Free hop (no egress)
-        </span>
-      </div>
-
-      <TooltipProvider delayDuration={150}>
+      <div className="relative flex-1">
+        {/* Vertical pipeline line */}
         <div
-          ref={rowRef}
-          className="relative flex flex-wrap items-center justify-between gap-y-4"
-        >
-          {/* Packet */}
-          {packetReady && (
-            <div
-              aria-hidden
-              className="pointer-events-none absolute z-10 -translate-x-1/2 -translate-y-1/2"
-              style={{
-                left: `${packetX}px`,
-                top: "28px",
-                transition: "left 900ms cubic-bezier(0.65, 0, 0.35, 1)",
-              }}
-            >
-              <div className="h-3 w-3 rounded-full bg-blue-500 shadow-[0_0_0_4px_rgba(59,130,246,0.25)]" />
-            </div>
-          )}
+          aria-hidden
+          className="absolute left-7 top-7 bottom-7 w-px bg-border"
+        />
+        {/* Travelling packet */}
+        {packetActive && (
+          <div
+            aria-hidden
+            className="pointer-events-none absolute left-7 z-20 h-3 w-3 -translate-x-1/2 rounded-full bg-blue-500 shadow-[0_0_0_4px_rgba(59,130,246,0.25)]"
+            style={{
+              top: `${packetIdx * 76 + 28}px`,
+              transition: "top 900ms cubic-bezier(0.65, 0, 0.35, 1)",
+            }}
+          />
+        )}
 
-          {hops.map((hop, i) => {
-            const Icon = hop.icon;
-            const key = `${idPrefix}-${hop.id}`;
-            const isActive = activeId === key;
-            const isDim = activeId !== null && !isActive;
-            const coinDropped = droppedCoins.has(i);
-            return (
-              <div key={key} className="flex items-center">
-                <div className="flex flex-col items-center gap-2">
-                  <Tooltip
-                    open={isActive ? true : undefined}
-                    onOpenChange={(o) => {
-                      if (!o && isActive) setActiveId(null);
-                    }}
-                  >
-                    <TooltipTrigger asChild>
-                      <button
-                        type="button"
-                        ref={(el) => {
-                          hopRefs.current[i] = el;
-                        }}
-                        onClick={() => setActiveId(isActive ? null : key)}
-                        className={
-                          "relative rounded-xl outline-none transition " +
-                          "focus-visible:ring-2 focus-visible:ring-ring " +
-                          (isActive
-                            ? "scale-110"
-                            : isDim
-                              ? "opacity-40"
-                              : "hover:scale-105")
-                        }
-                        aria-label={`${hop.label} hop`}
-                      >
-                        <div
-                          className={
-                            "flex h-14 w-14 items-center justify-center rounded-xl border bg-background transition " +
-                            (isActive
-                              ? hop.billed
-                                ? "border-red-500 ring-2 ring-red-200"
-                                : "border-emerald-500 ring-2 ring-emerald-200"
-                              : "")
-                          }
-                        >
-                          <Icon className="h-6 w-6 text-foreground" />
-                        </div>
-                        {hop.billed && <CoinBadge />}
-                        {/* Dropped coin animation */}
-                        {animate && hop.billed && coinDropped && (
-                          <span
-                            key={`coin-${droppedCoins.size}-${i}`}
-                            aria-hidden
-                            className="pointer-events-none absolute left-1/2 top-1/2 flex h-5 w-5 -translate-x-1/2 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white shadow"
-                            style={{
-                              animation:
-                                "coinDrop 900ms cubic-bezier(0.4, 0, 0.2, 1) forwards",
-                            }}
-                          >
-                            $
-                          </span>
-                        )}
-                      </button>
-                    </TooltipTrigger>
-                    <TooltipContent side="top" className="max-w-[260px] p-3">
-                      <div className="space-y-2">
-                        <p className="text-xs font-semibold text-foreground">
-                          {hop.label} ·{" "}
-                          <span
-                            className={
-                              hop.billed ? "text-red-600" : "text-emerald-600"
-                            }
-                          >
-                            {hop.billed ? `egress ${hop.rate}` : hop.rate}
-                          </span>
-                        </p>
-                        <p className="text-xs leading-relaxed text-muted-foreground">
-                          {hop.why}
-                        </p>
-                        <div className="rounded border border-border bg-muted/50 px-2 py-1.5">
-                          <p className="text-[10px] uppercase tracking-wide text-muted-foreground">
-                            Sample · 100 GB / month
-                          </p>
-                          <p
-                            className={
-                              "font-mono text-xs " +
-                              (hop.billed
-                                ? "text-red-600"
-                                : "text-emerald-600")
-                            }
-                          >
-                            {hop.sample}
-                          </p>
-                        </div>
-                      </div>
-                    </TooltipContent>
-                  </Tooltip>
-                  <div className="flex flex-col items-center gap-0.5">
-                    <span
-                      className={
-                        "text-xs font-medium transition " +
-                        (isDim
-                          ? "text-muted-foreground/40"
-                          : "text-foreground")
-                      }
-                    >
-                      {hop.label}
-                    </span>
-                    <span
-                      className={
-                        "text-[10px] font-mono transition " +
-                        (isDim
-                          ? "text-muted-foreground/40"
-                          : hop.billed
-                            ? "text-red-600"
-                            : "text-emerald-600")
-                      }
-                    >
-                      {hop.billed ? `egress · ${hop.rate}` : hop.rate}
-                    </span>
-                  </div>
-                </div>
-                {i < hops.length - 1 && (
-                  <ArrowRight className="mx-2 h-4 w-4 shrink-0 text-muted-foreground sm:mx-4" />
-                )}
-              </div>
-            );
-          })}
+        <TooltipProvider delayDuration={150}>
+          <div className="space-y-5">
+            {hops.map((hop, i) => {
+              const key = `${idPrefix}-${hop.id}`;
+              const active = activeId === key;
+              const dim = activeId !== null && !active;
+              const passed = packetActive && i <= packetIdx;
+              const showCoin =
+                packetActive && hop.billed && i <= packetIdx && i > 0;
+              return (
+                <HopRow
+                  key={key}
+                  hop={hop}
+                  idPrefix={idPrefix}
+                  active={active}
+                  passed={passed}
+                  dim={dim}
+                  showCoin={showCoin}
+                  onToggle={() => setActiveId(active ? null : key)}
+                />
+              );
+            })}
+          </div>
+        </TooltipProvider>
+      </div>
+
+      {/* Running total */}
+      <div
+        className={
+          "mt-5 rounded-lg border px-4 py-3 " +
+          (isBad
+            ? "border-red-200 bg-red-50"
+            : "border-emerald-200 bg-emerald-50")
+        }
+      >
+        <div className="flex items-baseline justify-between">
+          <span
+            className={
+              "text-xs font-semibold uppercase tracking-wide " +
+              (isBad ? "text-red-700" : "text-emerald-700")
+            }
+          >
+            Running cost
+          </span>
+          <span
+            className={
+              "font-mono text-2xl font-bold tabular-nums " +
+              (isBad ? "text-red-700" : "text-emerald-700")
+            }
+          >
+            ${runningTotal.toFixed(2)}
+          </span>
         </div>
-      </TooltipProvider>
-
-      <p className="mt-6 border-t pt-4 text-sm text-muted-foreground">
-        {caption}
-      </p>
-
-      {animate && (
-        <style>{`
-          @keyframes coinDrop {
-            0%   { opacity: 0; transform: translate(-50%, -50%) scale(0.4); }
-            30%  { opacity: 1; transform: translate(-50%, -50%) scale(1.1); }
-            100% { opacity: 0; transform: translate(-50%, 40px) scale(0.8); }
+        <div
+          className={
+            "mt-0.5 text-[11px] " +
+            (isBad ? "text-red-700/80" : "text-emerald-700/80")
           }
-        `}</style>
-      )}
+        >
+          {totalLabel}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function SideBySideFlow({
+  onCoinDrop,
+  onReset,
+}: {
+  onCoinDrop?: (index: number) => void;
+  onReset?: () => void;
+}) {
+  const [packetIdx, setPacketIdx] = useState(0);
+  const [packetActive, setPacketActive] = useState(false);
+  const [activeId, setActiveId] = useState<string | null>(null);
+
+  // Drive a single shared animation for both columns.
+  useEffect(() => {
+    let cancelled = false;
+    const timers: ReturnType<typeof setTimeout>[] = [];
+
+    const run = () => {
+      if (cancelled) return;
+      setPacketActive(true);
+      setPacketIdx(0);
+      onReset?.();
+
+      // Advance through each hop.
+      for (let i = 1; i < hops.length; i++) {
+        timers.push(
+          setTimeout(() => {
+            if (cancelled) return;
+            setPacketIdx(i);
+            if (hops[i].billed) onCoinDrop?.(i);
+          }, 900 + (i - 1) * 1100),
+        );
+      }
+
+      // Restart after the journey completes.
+      const total = 900 + (hops.length - 1) * 1100 + 1800;
+      timers.push(
+        setTimeout(() => {
+          if (cancelled) return;
+          setPacketActive(false);
+          timers.push(setTimeout(run, 400));
+        }, total),
+      );
+    };
+
+    run();
+    return () => {
+      cancelled = true;
+      timers.forEach(clearTimeout);
+    };
+  }, [onCoinDrop, onReset]);
+
+  // Running totals follow the packet.
+  const typicalTotal = hops
+    .slice(0, packetActive ? packetIdx + 1 : 0)
+    .reduce((sum, h) => sum + h.cost, 0);
+  const catalystTotal = 0;
+  const typicalFinal = hops.reduce((s, h) => s + h.cost, 0);
+
+  return (
+    <div>
+      {/* Shared scenario header */}
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border bg-muted/40 px-4 py-2.5 text-xs">
+        <div className="flex items-center gap-2">
+          <span className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
+            Scenario
+          </span>
+          <span className="font-medium text-foreground">
+            100 GB of user traffic / month
+          </span>
+        </div>
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-muted-foreground">
+          <span className="flex items-center gap-1.5">
+            <span className="inline-block h-2.5 w-2.5 rounded-full bg-blue-500 shadow-[0_0_0_3px_rgba(59,130,246,0.25)]" />
+            Data packet
+          </span>
+          <span className="flex items-center gap-1.5">
+            <span className="inline-flex h-3.5 w-3.5 items-center justify-center rounded-full bg-red-500 text-[8px] font-bold text-white">
+              $
+            </span>
+            Billed boundary
+          </span>
+        </div>
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-2">
+        <StackColumn
+          title="Typical stack"
+          tone="bad"
+          hops={hops}
+          idPrefix="typical"
+          packetIdx={packetIdx}
+          packetActive={packetActive}
+          activeId={activeId}
+          setActiveId={setActiveId}
+          runningTotal={typicalTotal}
+          totalLabel={`Vercel + managed DB + S3 · final: $${typicalFinal.toFixed(2)}`}
+          caption="3 vendor boundaries → 3 egress bills"
+          badge="3 billed hops"
+        />
+        <StackColumn
+          title="Catalyst"
+          tone="good"
+          hops={catalystHops}
+          idPrefix="catalyst"
+          packetIdx={packetIdx}
+          packetActive={packetActive}
+          activeId={activeId}
+          setActiveId={setActiveId}
+          runningTotal={catalystTotal}
+          totalLabel="One network · same packet, $0 egress"
+          caption="Same path, one network, zero billed hops"
+          badge="0 billed hops"
+        />
+      </div>
+
+      <style>{`
+        @keyframes coinDrop {
+          0%   { opacity: 0; transform: translate(-50%, -50%) scale(0.4); }
+          30%  { opacity: 1; transform: translate(-50%, -50%) scale(1.1); }
+          100% { opacity: 0; transform: translate(-50%, 40px) scale(0.8); }
+        }
+      `}</style>
     </div>
   );
 }
@@ -636,25 +764,10 @@ function Index() {
           </p>
         </header>
 
-        <section className="space-y-4">
-          <FlowDiagram
-            title="Typical stack"
-            hops={hops}
-            totalLabel="≈ $0.99 / GB"
-            totalTone="bad"
-            caption="3 boundaries crossed · 3 egress bills"
-            idPrefix="typical"
-            animate
+        <section>
+          <SideBySideFlow
             onCoinDrop={handleCoinDrop}
             onReset={handleReset}
-          />
-          <FlowDiagram
-            title="Catalyst"
-            hops={catalystHops}
-            totalLabel="$0 / GB"
-            totalTone="good"
-            caption="Same path, one network, no egress fees"
-            idPrefix="catalyst"
           />
         </section>
 
