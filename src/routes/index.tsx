@@ -6,10 +6,7 @@ import {
   Database,
   HardDrive,
   ArrowRight,
-  Check,
-  X,
   Play,
-  Pause,
   ChevronLeft,
   ChevronRight,
   RotateCcw,
@@ -21,7 +18,6 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
-import { Slider } from "@/components/ui/slider";
 import {
   Tooltip,
   TooltipContent,
