@@ -401,8 +401,9 @@ function Index() {
             One request. Multiple egress costs.
           </h1>
           <p className="mt-4 max-w-2xl text-lg text-muted-foreground">
-            Every time data crosses a vendor boundary in a typical stack, you
-            pay. Catalyst keeps it inside one network.
+            One trip across the network can trigger an egress charge at every
+            vendor boundary — your app, your database, and your storage each
+            send you a bill.
           </p>
           <p className="mt-2 text-sm text-muted-foreground">
             Tip: hover or tap any icon below to see what happens at that hop.
