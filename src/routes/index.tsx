@@ -200,7 +200,7 @@ function HopRow({
                   className="pointer-events-none absolute left-1/2 top-1/2 flex h-5 w-5 -translate-x-1/2 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white shadow"
                   style={{
                     animation:
-                      "coinDrop 900ms cubic-bezier(0.4, 0, 0.2, 1) forwards",
+                      "coinDrop 500ms cubic-bezier(0.4, 0, 0.2, 1) forwards",
                   }}
                 >
                   $
