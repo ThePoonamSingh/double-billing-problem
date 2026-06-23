@@ -44,6 +44,8 @@ type Hop = {
   billed: boolean;
   rate: string;
   tip: string;
+  why: string;
+  sample: string;
 };
 
 const hops: Hop[] = [
@@ -54,6 +56,8 @@ const hops: Hop[] = [
     billed: false,
     rate: "free",
     tip: "The browser sends a request. No egress cost here — ingress is free.",
+    why: "No coin drops — inbound bytes are free on every major cloud. You only pay when data leaves a vendor's network.",
+    sample: "100 GB in × $0.00 = $0.00",
   },
   {
     id: "app",
@@ -62,6 +66,8 @@ const hops: Hop[] = [
     billed: true,
     rate: "$0.12 / GB",
     tip: "Your app server (e.g. Vercel) responds. Bytes leaving its network are billed as egress.",
+    why: "The response leaves the app host's network to reach the user — that crossing is metered as egress.",
+    sample: "100 GB out × $0.12 = $12.00",
   },
   {
     id: "db",
@@ -70,6 +76,8 @@ const hops: Hop[] = [
     billed: true,
     rate: "$0.09 / GB",
     tip: "Managed DB ships rows to the app host. That cross-network read is billed.",
+    why: "Rows leave the managed DB's network to reach the app host — a separate vendor boundary, separately billed.",
+    sample: "100 GB read × $0.09 = $9.00",
   },
   {
     id: "storage",
@@ -78,6 +86,8 @@ const hops: Hop[] = [
     billed: true,
     rate: "$0.12 / GB",
     tip: "S3-style storage streams the asset out. Egress is metered per GB.",
+    why: "Assets leave the object store's network on every download — metered per GB regardless of destination.",
+    sample: "100 GB out × $0.12 = $12.00",
   },
 ];
 
@@ -89,6 +99,11 @@ const catalystHops: Hop[] = hops.map((h) => ({
     h.id === "user"
       ? h.tip
       : "Runs inside Catalyst's network — bytes never cross a billable boundary.",
+  why:
+    h.id === "user"
+      ? h.why
+      : "App, DB, and storage share one network. No vendor boundary is crossed, so no egress meter ticks.",
+  sample: "100 GB × $0.00 = $0.00",
 }));
 
 function CoinBadge() {
@@ -297,8 +312,37 @@ function FlowDiagram({
                         )}
                       </button>
                     </TooltipTrigger>
-                    <TooltipContent side="top" className="max-w-[220px]">
-                      <p className="text-xs leading-relaxed">{hop.tip}</p>
+                    <TooltipContent side="top" className="max-w-[260px] p-3">
+                      <div className="space-y-2">
+                        <p className="text-xs font-semibold text-foreground">
+                          {hop.label} ·{" "}
+                          <span
+                            className={
+                              hop.billed ? "text-red-600" : "text-emerald-600"
+                            }
+                          >
+                            {hop.billed ? `egress ${hop.rate}` : hop.rate}
+                          </span>
+                        </p>
+                        <p className="text-xs leading-relaxed text-muted-foreground">
+                          {hop.why}
+                        </p>
+                        <div className="rounded border border-border bg-muted/50 px-2 py-1.5">
+                          <p className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                            Sample · 100 GB / month
+                          </p>
+                          <p
+                            className={
+                              "font-mono text-xs " +
+                              (hop.billed
+                                ? "text-red-600"
+                                : "text-emerald-600")
+                            }
+                          >
+                            {hop.sample}
+                          </p>
+                        </div>
+                      </div>
                     </TooltipContent>
                   </Tooltip>
                   <div className="flex flex-col items-center gap-0.5">
