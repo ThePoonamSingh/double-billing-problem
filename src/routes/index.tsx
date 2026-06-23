@@ -993,7 +993,7 @@ function RealStackScenarios() {
           <div className="rounded-xl border border-border bg-background/40 p-5">
             <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
               <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                Request journey · hop {stepIndex + 1} of {active.steps.length}
+                Request journey
               </div>
               <div className="flex items-center gap-2">
                 <button
