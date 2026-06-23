@@ -7,12 +7,20 @@ import {
   HardDrive,
   ArrowRight,
   Play,
-  
   ChevronLeft,
   ChevronRight,
   RotateCcw,
   Sparkles,
   Info,
+  Cloud,
+  Zap,
+  Snowflake,
+  Flame,
+  Leaf,
+  DollarSign,
+  ShieldCheck,
+  Gauge,
+  type LucideIcon,
 } from "lucide-react";
 import { Slider } from "@/components/ui/slider";
 import {
@@ -834,6 +842,37 @@ function formatCost(usd: number) {
   return `$${usd.toFixed(5)}`;
 }
 
+/**
+ * Per-vendor icon + brand-ish color used to color-code each hop.
+ * `tint` classes drive the icon chip; the vendor name itself stays neutral
+ * so it stays readable inside the red boundary box.
+ */
+const vendorStyle: Record<
+  string,
+  { icon: LucideIcon; tint: string; ring: string; dot: string }
+> = {
+  Supabase:        { icon: Database,  tint: "bg-emerald-500/15 text-emerald-300", ring: "ring-emerald-400/40", dot: "bg-emerald-400" },
+  "AWS S3":        { icon: HardDrive, tint: "bg-amber-500/15 text-amber-300",     ring: "ring-amber-400/40",   dot: "bg-amber-400" },
+  "S3 Data Lake":  { icon: HardDrive, tint: "bg-amber-500/15 text-amber-300",     ring: "ring-amber-400/40",   dot: "bg-amber-400" },
+  Azure:           { icon: Cloud,     tint: "bg-sky-500/15 text-sky-300",         ring: "ring-sky-400/40",     dot: "bg-sky-400" },
+  GCP:             { icon: Cloud,     tint: "bg-blue-500/15 text-blue-300",       ring: "ring-blue-400/40",    dot: "bg-blue-400" },
+  "Cloudflare CDN":{ icon: Zap,       tint: "bg-orange-500/15 text-orange-300",   ring: "ring-orange-400/40",  dot: "bg-orange-400" },
+  Snowflake:       { icon: Snowflake, tint: "bg-cyan-500/15 text-cyan-300",       ring: "ring-cyan-400/40",    dot: "bg-cyan-400" },
+  DigitalOcean:    { icon: Server,    tint: "bg-indigo-500/15 text-indigo-300",   ring: "ring-indigo-400/40",  dot: "bg-indigo-400" },
+  Firebase:        { icon: Flame,     tint: "bg-amber-500/15 text-amber-300",     ring: "ring-amber-400/40",   dot: "bg-amber-400" },
+  "MongoDB Atlas": { icon: Leaf,      tint: "bg-green-500/15 text-green-300",     ring: "ring-green-400/40",   dot: "bg-green-400" },
+  Heroku:          { icon: Server,    tint: "bg-violet-500/15 text-violet-300",   ring: "ring-violet-400/40",  dot: "bg-violet-400" },
+};
+const defaultVendorStyle = {
+  icon: Server,
+  tint: "bg-muted text-foreground/80",
+  ring: "ring-border",
+  dot: "bg-muted-foreground",
+};
+function getVendorStyle(name: string) {
+  return vendorStyle[name] ?? defaultVendorStyle;
+}
+
 function RealStackScenarios() {
   const [activeId, setActiveId] = useState(scenarios[0].id);
   const [dataMb, setDataMb] = useState(100);
@@ -942,6 +981,31 @@ function RealStackScenarios() {
             </div>
           </div>
 
+          {/* Legend */}
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-lg border border-border/60 bg-background/40 px-3 py-2 text-[11px] text-muted-foreground">
+            <span className="font-semibold uppercase tracking-wide text-foreground/80">Legend</span>
+            <span className="inline-flex items-center gap-1.5">
+              <span className="inline-block h-3 w-4 rounded-sm border border-dashed border-red-500/60 bg-red-500/10" />
+              Vendor billing boundary
+            </span>
+            <span className="inline-flex items-center gap-1.5">
+              <span className="relative inline-block h-[2px] w-6 rounded-full bg-gradient-to-r from-red-500/20 via-red-500/70 to-red-500/20">
+                <span className="absolute top-1/2 left-1/2 h-1.5 w-1.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-red-400 shadow-[0_0_8px_rgba(239,68,68,0.8)]" />
+              </span>
+              Data packet in flight
+            </span>
+            <span className="inline-flex items-center gap-1.5">
+              <span className="inline-flex items-center gap-0.5 rounded-full border border-red-500/30 bg-red-500/10 px-1.5 py-0.5 font-bold text-red-300">
+                <DollarSign className="h-2.5 w-2.5" /> egress
+              </span>
+              Charged at boundary crossing
+            </span>
+            <span className="inline-flex items-center gap-1.5">
+              <ShieldCheck className="h-3.5 w-3.5 text-emerald-400" />
+              Inside Catalyst — no boundary, no meter
+            </span>
+          </div>
+
           {/* Visual hop diagrams */}
           <div className="grid gap-4 lg:grid-cols-2">
             <HopDiagram
@@ -966,33 +1030,49 @@ function RealStackScenarios() {
               Request journey
             </div>
             <ol className="space-y-3">
-              {active.steps.map((step, i) => (
-                <li
-                  key={i}
-                  className="flex gap-3 rounded-lg border border-border/60 bg-background/60 p-3"
-                >
-                  <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-primary/40 bg-primary/10 text-[11px] font-bold text-primary">
-                    {i + 1}
-                  </span>
-                  <div className="min-w-0 flex-1">
-                    <div className="flex flex-wrap items-center gap-2 text-sm">
-                      <span className="rounded-md border border-border bg-background px-2 py-0.5 font-semibold">
-                        {step.from}
-                      </span>
-                      <ArrowRight className="h-4 w-4 text-muted-foreground" />
-                      <span className="rounded-md border border-border bg-background px-2 py-0.5 font-semibold">
-                        {step.to}
-                      </span>
-                      <span className="ml-auto rounded-full border border-red-500/30 bg-red-500/10 px-2 py-0.5 text-[11px] font-bold text-red-300">
-                        {formatCost(hopCost)} egress
-                      </span>
+              {active.steps.map((step, i) => {
+                const from = getVendorStyle(step.from);
+                const to = getVendorStyle(step.to);
+                const FromIcon = from.icon;
+                const ToIcon = to.icon;
+                return (
+                  <li
+                    key={i}
+                    className="flex gap-3 rounded-lg border border-border/60 bg-background/60 p-3"
+                  >
+                    <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-red-500/40 bg-red-500/10 text-[11px] font-bold text-red-300">
+                      {i + 1}
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center gap-2 text-sm">
+                        <span className={`inline-flex items-center gap-1.5 rounded-md border border-border bg-background px-2 py-0.5 font-semibold ring-1 ${from.ring}`}>
+                          <span className={`inline-flex h-4 w-4 items-center justify-center rounded-sm ${from.tint}`}>
+                            <FromIcon className="h-3 w-3" />
+                          </span>
+                          {step.from}
+                        </span>
+                        <span className="inline-flex items-center gap-1 text-red-400">
+                          <ArrowRight className="h-4 w-4" />
+                          <Gauge className="h-3.5 w-3.5" aria-label="meter starts" />
+                        </span>
+                        <span className={`inline-flex items-center gap-1.5 rounded-md border border-border bg-background px-2 py-0.5 font-semibold ring-1 ${to.ring}`}>
+                          <span className={`inline-flex h-4 w-4 items-center justify-center rounded-sm ${to.tint}`}>
+                            <ToIcon className="h-3 w-3" />
+                          </span>
+                          {step.to}
+                        </span>
+                        <span className="ml-auto inline-flex items-center gap-0.5 rounded-full border border-red-500/30 bg-red-500/10 px-2 py-0.5 text-[11px] font-bold text-red-300">
+                          <DollarSign className="h-3 w-3" />
+                          {formatCost(hopCost)} egress
+                        </span>
+                      </div>
+                      <p className="mt-2 text-sm leading-relaxed text-foreground/90">
+                        {step.action}
+                      </p>
                     </div>
-                    <p className="mt-2 text-sm leading-relaxed text-foreground/90">
-                      {step.action}
-                    </p>
-                  </div>
-                </li>
-              ))}
+                  </li>
+                );
+              })}
             </ol>
           </div>
         </div>
@@ -1054,7 +1134,10 @@ function HopDiagram({
 
       {/* Vendor flow */}
       <div className="flex items-stretch justify-between gap-1">
-        {vendors.map((v, i) => (
+        {vendors.map((v, i) => {
+          const vs = getVendorStyle(v);
+          const VIcon = vs.icon;
+          return (
           <span key={v} className="flex flex-1 items-center gap-1">
             {/* Vendor node */}
             {isBefore ? (
@@ -1064,8 +1147,11 @@ function HopDiagram({
                     <span className="text-[9px] font-medium uppercase tracking-wider text-red-400/70">
                       boundary
                     </span>
-                    <span className={`mt-1 w-full truncate rounded-md border px-2 py-1.5 text-center text-xs font-semibold ${accent.node}`}>
-                      {v}
+                    <span className={`mt-1 flex w-full items-center justify-center gap-1.5 truncate rounded-md border px-2 py-1.5 text-center text-xs font-semibold ring-1 ${accent.node} ${vs.ring}`}>
+                      <span className={`inline-flex h-4 w-4 shrink-0 items-center justify-center rounded-sm ${vs.tint}`}>
+                        <VIcon className="h-3 w-3" />
+                      </span>
+                      <span className="truncate">{v}</span>
                     </span>
                   </span>
                 </TooltipTrigger>
@@ -1076,8 +1162,11 @@ function HopDiagram({
             ) : (
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <span className={`flex-1 cursor-help truncate rounded-md border px-2 py-2 text-center text-xs font-semibold ${accent.node}`}>
-                    {v}
+                  <span className={`flex flex-1 cursor-help items-center justify-center gap-1.5 truncate rounded-md border px-2 py-2 text-center text-xs font-semibold ring-1 ${accent.node} ${vs.ring}`}>
+                    <span className={`inline-flex h-4 w-4 shrink-0 items-center justify-center rounded-sm ${vs.tint}`}>
+                      <VIcon className="h-3 w-3" />
+                    </span>
+                    <span className="truncate">{v}</span>
                   </span>
                 </TooltipTrigger>
                 <TooltipContent className="max-w-[220px] text-xs">
@@ -1089,6 +1178,19 @@ function HopDiagram({
             {/* Connector */}
             {i < vendors.length - 1 && (
               <span className="relative flex shrink-0 flex-col items-center gap-1 px-1">
+                {/* Crossing icon: meter when billed, shield when free */}
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span className={`inline-flex h-4 w-4 cursor-help items-center justify-center rounded-full border ${isBefore ? "border-red-500/40 bg-red-500/10 text-red-300" : "border-emerald-500/40 bg-emerald-500/10 text-emerald-300"}`}>
+                      {isBefore ? <Gauge className="h-2.5 w-2.5" /> : <ShieldCheck className="h-2.5 w-2.5" />}
+                    </span>
+                  </TooltipTrigger>
+                  <TooltipContent className="max-w-[220px] text-xs">
+                    {isBefore
+                      ? <>Boundary crossing — a new egress meter starts here.</>
+                      : <>No boundary — same network, no meter.</>}
+                  </TooltipContent>
+                </Tooltip>
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <span className={`relative h-[2px] w-10 cursor-help overflow-hidden rounded-full ${accent.line}`}>
@@ -1101,26 +1203,28 @@ function HopDiagram({
                       />
                     </span>
                   </TooltipTrigger>
-                    <TooltipContent className="max-w-[220px] text-xs">
-                      Hop {i + 1}: the moving dot is your data crossing from <strong>{vendors[i]}</strong> to <strong>{vendors[i + 1]}</strong>. Speed scales with payload size.
-                    </TooltipContent>
-                  </Tooltip>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <span className={`cursor-help rounded-full border px-1.5 py-0.5 text-[10px] font-bold leading-none ${accent.chip}`}>
-                        {isBefore ? formatCost(hopCost) : "$0"}
-                      </span>
-                    </TooltipTrigger>
-                    <TooltipContent className="max-w-[240px] text-xs">
-                      {isBefore
-                        ? <>Charged by <strong>{vendors[i]}</strong> at ~${EGRESS_PER_GB.toFixed(2)}/GB for bytes leaving its network. New meter starts at every boundary.</>
-                        : <>No boundary crossed inside Catalyst, so there's nothing to bill.</>}
-                    </TooltipContent>
-                  </Tooltip>
+                  <TooltipContent className="max-w-[220px] text-xs">
+                    Hop {i + 1}: the moving dot is your data crossing from <strong>{vendors[i]}</strong> to <strong>{vendors[i + 1]}</strong>. Speed scales with payload size.
+                  </TooltipContent>
+                </Tooltip>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span className={`inline-flex cursor-help items-center gap-0.5 rounded-full border px-1.5 py-0.5 text-[10px] font-bold leading-none ${accent.chip}`}>
+                      <DollarSign className="h-2.5 w-2.5" />
+                      {isBefore ? formatCost(hopCost) : "0"}
+                    </span>
+                  </TooltipTrigger>
+                  <TooltipContent className="max-w-[240px] text-xs">
+                    {isBefore
+                      ? <>Charged by <strong>{vendors[i]}</strong> at ~${EGRESS_PER_GB.toFixed(2)}/GB for bytes leaving its network. New meter starts at every boundary.</>
+                      : <>No boundary crossed inside Catalyst, so there's nothing to bill.</>}
+                  </TooltipContent>
+                </Tooltip>
               </span>
             )}
           </span>
-        ))}
+          );
+        })}
       </div>
 
       {/* Footnote */}
