@@ -287,6 +287,7 @@ function StackColumn({
   totalLabel,
   caption,
   badge,
+  focusIdx,
 }: {
   title: string;
   tone: "bad" | "good";
@@ -300,6 +301,7 @@ function StackColumn({
   totalLabel: string;
   caption: string;
   badge: string;
+  focusIdx?: number | null;
 }) {
   const isBad = tone === "bad";
   return (
