@@ -1134,7 +1134,10 @@ function HopDiagram({
 
       {/* Vendor flow */}
       <div className="flex items-stretch justify-between gap-1">
-        {vendors.map((v, i) => (
+        {vendors.map((v, i) => {
+          const vs = getVendorStyle(v);
+          const VIcon = vs.icon;
+          return (
           <span key={v} className="flex flex-1 items-center gap-1">
             {/* Vendor node */}
             {isBefore ? (
@@ -1144,8 +1147,11 @@ function HopDiagram({
                     <span className="text-[9px] font-medium uppercase tracking-wider text-red-400/70">
                       boundary
                     </span>
-                    <span className={`mt-1 w-full truncate rounded-md border px-2 py-1.5 text-center text-xs font-semibold ${accent.node}`}>
-                      {v}
+                    <span className={`mt-1 flex w-full items-center justify-center gap-1.5 truncate rounded-md border px-2 py-1.5 text-center text-xs font-semibold ring-1 ${accent.node} ${vs.ring}`}>
+                      <span className={`inline-flex h-4 w-4 shrink-0 items-center justify-center rounded-sm ${vs.tint}`}>
+                        <VIcon className="h-3 w-3" />
+                      </span>
+                      <span className="truncate">{v}</span>
                     </span>
                   </span>
                 </TooltipTrigger>
@@ -1156,8 +1162,11 @@ function HopDiagram({
             ) : (
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <span className={`flex-1 cursor-help truncate rounded-md border px-2 py-2 text-center text-xs font-semibold ${accent.node}`}>
-                    {v}
+                  <span className={`flex flex-1 cursor-help items-center justify-center gap-1.5 truncate rounded-md border px-2 py-2 text-center text-xs font-semibold ring-1 ${accent.node} ${vs.ring}`}>
+                    <span className={`inline-flex h-4 w-4 shrink-0 items-center justify-center rounded-sm ${vs.tint}`}>
+                      <VIcon className="h-3 w-3" />
+                    </span>
+                    <span className="truncate">{v}</span>
                   </span>
                 </TooltipTrigger>
                 <TooltipContent className="max-w-[220px] text-xs">
@@ -1169,6 +1178,19 @@ function HopDiagram({
             {/* Connector */}
             {i < vendors.length - 1 && (
               <span className="relative flex shrink-0 flex-col items-center gap-1 px-1">
+                {/* Crossing icon: meter when billed, shield when free */}
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span className={`inline-flex h-4 w-4 cursor-help items-center justify-center rounded-full border ${isBefore ? "border-red-500/40 bg-red-500/10 text-red-300" : "border-emerald-500/40 bg-emerald-500/10 text-emerald-300"}`}>
+                      {isBefore ? <Gauge className="h-2.5 w-2.5" /> : <ShieldCheck className="h-2.5 w-2.5" />}
+                    </span>
+                  </TooltipTrigger>
+                  <TooltipContent className="max-w-[220px] text-xs">
+                    {isBefore
+                      ? <>Boundary crossing — a new egress meter starts here.</>
+                      : <>No boundary — same network, no meter.</>}
+                  </TooltipContent>
+                </Tooltip>
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <span className={`relative h-[2px] w-10 cursor-help overflow-hidden rounded-full ${accent.line}`}>
@@ -1181,26 +1203,28 @@ function HopDiagram({
                       />
                     </span>
                   </TooltipTrigger>
-                    <TooltipContent className="max-w-[220px] text-xs">
-                      Hop {i + 1}: the moving dot is your data crossing from <strong>{vendors[i]}</strong> to <strong>{vendors[i + 1]}</strong>. Speed scales with payload size.
-                    </TooltipContent>
-                  </Tooltip>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <span className={`cursor-help rounded-full border px-1.5 py-0.5 text-[10px] font-bold leading-none ${accent.chip}`}>
-                        {isBefore ? formatCost(hopCost) : "$0"}
-                      </span>
-                    </TooltipTrigger>
-                    <TooltipContent className="max-w-[240px] text-xs">
-                      {isBefore
-                        ? <>Charged by <strong>{vendors[i]}</strong> at ~${EGRESS_PER_GB.toFixed(2)}/GB for bytes leaving its network. New meter starts at every boundary.</>
-                        : <>No boundary crossed inside Catalyst, so there's nothing to bill.</>}
-                    </TooltipContent>
-                  </Tooltip>
+                  <TooltipContent className="max-w-[220px] text-xs">
+                    Hop {i + 1}: the moving dot is your data crossing from <strong>{vendors[i]}</strong> to <strong>{vendors[i + 1]}</strong>. Speed scales with payload size.
+                  </TooltipContent>
+                </Tooltip>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span className={`inline-flex cursor-help items-center gap-0.5 rounded-full border px-1.5 py-0.5 text-[10px] font-bold leading-none ${accent.chip}`}>
+                      <DollarSign className="h-2.5 w-2.5" />
+                      {isBefore ? formatCost(hopCost) : "0"}
+                    </span>
+                  </TooltipTrigger>
+                  <TooltipContent className="max-w-[240px] text-xs">
+                    {isBefore
+                      ? <>Charged by <strong>{vendors[i]}</strong> at ~${EGRESS_PER_GB.toFixed(2)}/GB for bytes leaving its network. New meter starts at every boundary.</>
+                      : <>No boundary crossed inside Catalyst, so there's nothing to bill.</>}
+                  </TooltipContent>
+                </Tooltip>
               </span>
             )}
           </span>
-        ))}
+          );
+        })}
       </div>
 
       {/* Footnote */}
