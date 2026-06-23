@@ -1087,23 +1087,20 @@ function HopDiagram({
             )}
 
             {/* Connector */}
-            {i < vendors.length - 1 && (() => {
-              const isActive = i === activeHop;
-              return (
-                <span className={`relative flex shrink-0 flex-col items-center gap-1 px-1 transition-opacity ${isActive ? "opacity-100" : "opacity-60"}`}>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <span className={`relative h-[2px] w-10 cursor-help overflow-hidden rounded-full ${accent.line} ${isActive ? "ring-2 ring-offset-2 ring-offset-background " + (isBefore ? "ring-red-500/40" : "ring-emerald-500/40") : ""}`}>
-                        <span
-                          className={`absolute top-1/2 h-1.5 w-1.5 -translate-y-1/2 rounded-full ${accent.dot}`}
-                          style={{
-                            animation: `hop-packet ${hopDuration}s linear infinite`,
-                            animationDelay: `${i * 0.4}s`,
-                            animationPlayState: isPlaying && !isActive ? "paused" : "running",
-                          }}
-                        />
-                      </span>
-                    </TooltipTrigger>
+            {i < vendors.length - 1 && (
+              <span className="relative flex shrink-0 flex-col items-center gap-1 px-1">
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span className={`relative h-[2px] w-10 cursor-help overflow-hidden rounded-full ${accent.line}`}>
+                      <span
+                        className={`absolute top-1/2 h-1.5 w-1.5 -translate-y-1/2 rounded-full ${accent.dot}`}
+                        style={{
+                          animation: `hop-packet ${hopDuration}s linear infinite`,
+                          animationDelay: `${i * 0.4}s`,
+                        }}
+                      />
+                    </span>
+                  </TooltipTrigger>
                     <TooltipContent className="max-w-[220px] text-xs">
                       Hop {i + 1}: the moving dot is your data crossing from <strong>{vendors[i]}</strong> to <strong>{vendors[i + 1]}</strong>. Speed scales with payload size.
                     </TooltipContent>
