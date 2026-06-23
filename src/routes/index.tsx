@@ -125,6 +125,8 @@ function FlowDiagram({
   caption,
   idPrefix,
   animate = false,
+  onCoinDrop,
+  onReset,
 }: {
   title: string;
   hops: Hop[];
@@ -133,6 +135,8 @@ function FlowDiagram({
   caption: string;
   idPrefix: string;
   animate?: boolean;
+  onCoinDrop?: (index: number) => void;
+  onReset?: () => void;
 }) {
   const [activeId, setActiveId] = useState<string | null>(null);
   const rowRef = useRef<HTMLDivElement | null>(null);
