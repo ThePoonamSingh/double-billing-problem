@@ -844,56 +844,128 @@ function RealStackScenarios() {
         })}
       </div>
 
-      <div key={active.id} className="mt-6 animate-fade-in">
-        <div className="mb-5 flex flex-wrap items-center gap-2">
-          <span className="text-xs uppercase tracking-wide text-muted-foreground">
-            Stack used:
-          </span>
-          {active.vendors.map((v, i) => (
-            <span key={v} className="flex items-center gap-2">
-              <span className="rounded-md border border-border bg-background px-2.5 py-1 text-sm font-medium">
-                {v}
-              </span>
-              {i < active.vendors.length - 1 && (
-                <ArrowRight className="h-4 w-4 text-muted-foreground" />
-              )}
-            </span>
-          ))}
+      <div key={active.id} className="mt-6 animate-fade-in space-y-6">
+        {/* Problem statement */}
+        <div className="rounded-xl border border-border bg-background/40 p-5">
+          <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            The problem
+          </div>
+          <p className="text-sm leading-relaxed text-foreground/90">
+            {active.problem}
+          </p>
         </div>
 
-        <div className="grid gap-4 md:grid-cols-[1fr_auto_auto] md:items-stretch">
-          <div className="rounded-xl border border-border bg-background/40 p-5">
-            <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-              The problem
-            </div>
-            <p className="text-sm leading-relaxed text-foreground/90">
-              {active.problem}
-            </p>
-          </div>
-
-          <div className="rounded-xl border border-red-500/30 bg-red-500/5 p-5 md:w-56">
-            <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-red-400">
-              Before Catalyst
-            </div>
-            <div className="text-lg font-semibold text-foreground">
-              {active.before}
-            </div>
-          </div>
-
-          <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/5 p-5 md:w-56">
-            <div className="mb-2 inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-emerald-400">
-              <Sparkles className="h-3.5 w-3.5" />
-              After Catalyst
-            </div>
-            <div className="text-lg font-semibold text-foreground">
-              {active.after}
-            </div>
-          </div>
+        {/* Visual hop diagrams */}
+        <div className="grid gap-4 lg:grid-cols-2">
+          <HopDiagram vendors={active.vendors} mode="before" summary={active.before} />
+          <HopDiagram vendors={active.vendors} mode="after" summary={active.after} />
         </div>
       </div>
     </div>
   );
 }
+
+function HopDiagram({
+  vendors,
+  mode,
+  summary,
+}: {
+  vendors: string[];
+  mode: "before" | "after";
+  summary: string;
+}) {
+  const isBefore = mode === "before";
+  const accent = isBefore
+    ? {
+        ring: "border-red-500/40 bg-red-500/[0.04]",
+        chip: "border-red-500/30 bg-red-500/10 text-red-300",
+        label: "text-red-400",
+        node: "border-red-500/40 bg-background",
+        line: "bg-gradient-to-r from-red-500/20 via-red-500/60 to-red-500/20",
+        dot: "bg-red-500 shadow-[0_0_10px_rgba(239,68,68,0.8)]",
+      }
+    : {
+        ring: "border-emerald-500/40 bg-emerald-500/[0.04]",
+        chip: "border-emerald-500/30 bg-emerald-500/10 text-emerald-300",
+        label: "text-emerald-400",
+        node: "border-emerald-500/40 bg-background",
+        line: "bg-gradient-to-r from-emerald-500/20 via-emerald-500/60 to-emerald-500/20",
+        dot: "bg-emerald-400 shadow-[0_0_10px_rgba(16,185,129,0.8)]",
+      };
+
+  return (
+    <div className={`relative rounded-xl border-2 border-dashed p-5 ${accent.ring}`}>
+      {/* Header */}
+      <div className="mb-4 flex items-center justify-between">
+        <div className={`inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide ${accent.label}`}>
+          {!isBefore && <Sparkles className="h-3.5 w-3.5" />}
+          {isBefore ? "Before Catalyst" : "After Catalyst"}
+        </div>
+        <span className={`rounded-full border px-2.5 py-0.5 text-xs font-medium ${accent.chip}`}>
+          {summary}
+        </span>
+      </div>
+
+      {/* For "After": wrap the whole network in one unified boundary label */}
+      {!isBefore && (
+        <div className="mb-3 text-center text-[10px] font-medium uppercase tracking-widest text-emerald-400/80">
+          ── one network · no boundaries ──
+        </div>
+      )}
+
+      {/* Vendor flow */}
+      <div className="flex items-stretch justify-between gap-1">
+        {vendors.map((v, i) => (
+          <span key={v} className="flex flex-1 items-center gap-1">
+            {/* Vendor node, optionally wrapped in its own boundary box for "before" */}
+            {isBefore ? (
+              <span className="flex flex-1 flex-col items-center rounded-lg border border-dashed border-red-500/40 bg-red-500/[0.03] p-2">
+                <span className="text-[9px] font-medium uppercase tracking-wider text-red-400/70">
+                  boundary
+                </span>
+                <span className={`mt-1 w-full truncate rounded-md border px-2 py-1.5 text-center text-xs font-semibold ${accent.node}`}>
+                  {v}
+                </span>
+              </span>
+            ) : (
+              <span className={`flex-1 truncate rounded-md border px-2 py-2 text-center text-xs font-semibold ${accent.node}`}>
+                {v}
+              </span>
+            )}
+
+            {/* Connector with animated packet + cost badge */}
+            {i < vendors.length - 1 && (
+              <span className="relative flex shrink-0 flex-col items-center gap-1 px-1">
+                <span className={`relative h-[2px] w-10 overflow-hidden rounded-full ${accent.line}`}>
+                  <span
+                    className={`absolute top-1/2 h-1.5 w-1.5 -translate-y-1/2 rounded-full ${accent.dot}`}
+                    style={{
+                      animation: `hop-packet 1.8s linear infinite`,
+                      animationDelay: `${i * 0.4}s`,
+                    }}
+                  />
+                </span>
+                <span
+                  className={`rounded-full border px-1.5 py-0.5 text-[10px] font-bold leading-none ${accent.chip}`}
+                >
+                  {isBefore ? "$ egress" : "$0"}
+                </span>
+              </span>
+            )}
+          </span>
+        ))}
+      </div>
+
+      {/* Legend */}
+      <div className="mt-4 text-center text-[11px] text-muted-foreground">
+        {isBefore
+          ? `${vendors.length - 1} vendor boundaries crossed · ${vendors.length - 1} meters running`
+          : "Data moves freely inside Catalyst — nothing to meter"}
+      </div>
+    </div>
+  );
+}
+
 
 function Index() {
 
