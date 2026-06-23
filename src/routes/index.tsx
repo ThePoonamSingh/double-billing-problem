@@ -8,6 +8,12 @@ import {
   ArrowRight,
   Check,
   X,
+  Play,
+  Pause,
+  ChevronLeft,
+  ChevronRight,
+  RotateCcw,
+  Sparkles,
 } from "lucide-react";
 import {
   Accordion,
