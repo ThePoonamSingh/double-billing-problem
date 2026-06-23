@@ -351,21 +351,38 @@ function StackColumn({
             {hops.map((hop, i) => {
               const key = `${idPrefix}-${hop.id}`;
               const active = activeId === key;
-              const dim = activeId !== null && !active;
+              const focused = focusIdx === i;
+              const dim =
+                (activeId !== null && !active) ||
+                (focusIdx != null && !focused);
               const passed = packetActive && i <= packetIdx;
               const showCoin =
                 packetActive && hop.billed && i <= packetIdx && i > 0;
               return (
-                <HopRow
+                <div
                   key={key}
-                  hop={hop}
-                  idPrefix={idPrefix}
-                  active={active}
-                  passed={passed}
-                  dim={dim}
-                  showCoin={showCoin}
-                  onToggle={() => setActiveId(active ? null : key)}
-                />
+                  className={
+                    "rounded-lg transition " +
+                    (focused
+                      ? "-mx-2 px-2 py-2 ring-2 ring-blue-400/60 bg-blue-50/40"
+                      : "")
+                  }
+                  style={
+                    focused
+                      ? { animation: "focusPulse 1.6s ease-in-out infinite" }
+                      : undefined
+                  }
+                >
+                  <HopRow
+                    hop={hop}
+                    idPrefix={idPrefix}
+                    active={active}
+                    passed={passed}
+                    dim={dim}
+                    showCoin={showCoin}
+                    onToggle={() => setActiveId(active ? null : key)}
+                  />
+                </div>
               );
             })}
           </div>
